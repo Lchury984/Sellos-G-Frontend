@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import Login from '../pages/auth/Login';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import ResetPassword from '../pages/auth/ResetPassword';
+import VerifyEmail from '../pages/auth/VerifyEmail';
 
 // Dashboards por rol
 import AdminDashboard from '../pages/admin/Dashboard';
@@ -75,9 +76,8 @@ const AppRoutes = () => {
             />
 
             {/* Rutas del Administrador */}
-                {/* Rutas de recuperación y restablecimiento de contraseña */}
             <Route
-                path="/admin/dashboard"
+                path="/admin/dashboard/*"
                 element={
                     <ProtectedRoute allowedRoles={['administrador', 'admin']}>
                         <ProtectedLayout allowedRoles={['administrador', 'admin']}>
@@ -89,7 +89,7 @@ const AppRoutes = () => {
 
             {/* Rutas del Empleado */}
             <Route
-                path="/empleado/dashboard"
+                path="/empleado/dashboard/*"
                 element={
                     <ProtectedRoute allowedRoles={['empleado']}>
                         <ProtectedLayout allowedRoles={['empleado']}>
@@ -101,7 +101,7 @@ const AppRoutes = () => {
 
             {/* Rutas del Cliente */}
             <Route
-                path="/cliente/dashboard"
+                path="/cliente/dashboard/*"
                 element={
                     <ProtectedRoute allowedRoles={['cliente']}>
                         <ProtectedLayout allowedRoles={['cliente']}>
@@ -138,6 +138,15 @@ const AppRoutes = () => {
                 element={
                     <PublicRoute>
                         <ResetPassword />
+                    </PublicRoute>
+                }
+            />
+            {/* Ruta de verificación de email */}
+            <Route
+                path="/verificar-email"
+                element={
+                    <PublicRoute>
+                        <VerifyEmail />
                     </PublicRoute>
                 }
             />

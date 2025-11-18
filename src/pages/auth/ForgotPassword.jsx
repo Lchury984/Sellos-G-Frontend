@@ -9,6 +9,7 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [tokenValue, setTokenValue] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +25,8 @@ const ForgotPassword = () => {
     }
 
     try {
-      await authService.forgotPassword(email);
+      const data = await authService.forgotPassword(email);
+      if (data?.token) setTokenValue(data.token);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Error al enviar el correo de recuperación');
@@ -45,6 +47,12 @@ const ForgotPassword = () => {
             <p className="text-gray-600 mb-6">
               Hemos enviado un enlace de recuperación a <strong>{email}</strong>
             </p>
+            {tokenValue && (
+              <div className="bg-gray-50 border border-gray-200 px-4 py-3 rounded-lg text-sm text-gray-700 mt-4">
+                <p className="break-words">Token (dev): <strong>{tokenValue}</strong></p>
+                <p className="text-xs text-gray-500 mt-1">Usa este token en desarrollo para probar la ruta <code>/reset-password?token=...</code></p>
+              </div>
+            )}
             <p className="text-sm text-gray-500 mb-6">
               Por favor revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
             </p>
