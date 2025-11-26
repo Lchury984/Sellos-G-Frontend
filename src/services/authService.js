@@ -37,40 +37,30 @@ api.interceptors.response.use(
 );
 
 const authServiceImpl = {
-  // ✅ Login corregido y robusto
-  // Login corregido - acepta admin/user y asegura que exista rol
-  login: async (email, password, rol) => {
+  // ✅ Login UNIFICADO: Solo requiere correo y password
+  login: async (correo, password) => { // Ya no acepta 'rol'
     try {
-      // Determinar endpoint según el rol
-      let endpoint = "";
-      if (rol === "administrador") {
-        endpoint = "/admins/login";
-      } else if (rol === "cliente") {
-        endpoint = "/clientes/login";
-      } else if (rol === "empleado") {
-        endpoint = "/empleados/login";
-      } else {
-        throw { message: "Debe seleccionar un tipo de usuario válido" };
-      }
+      // 1. Llamar al endpoint unificado
+      // Usamos el endpoint '/auth/login' que está definido en authRoutes.js
+      const endpoint = "/auth/login";
 
-      // Realizar la petición
-      const response = await api.post(endpoint, { email, password });
-      const data = response.data;
-      const token = data.token;
-      let userData = data.user || data.admin || data.cliente || data.empleado;
+      // 2. Realizar la petición
+      const response = await api.post(endpoint, { correo, password });
+      const data = response.data; // Esperamos { msg, token, rol }
 
-      // Asegurar que tenga un rol
-      if (userData && !userData.rol) {
-        userData = { ...userData, rol };
-      }
+      // 3. Guardar token y rol en localStorage
+      if (data.token) localStorage.setItem("token", data.token);
+      if (data.rol) localStorage.setItem("user_role", data.rol); // Guardamos el rol explícitamente
 
-      // Guardar en localStorage
-      if (token) localStorage.setItem("token", token);
-      if (userData) localStorage.setItem("user", JSON.stringify(userData));
-
-      return { token, user: userData };
+      // 4. Retornar los datos clave (el rol será usado para la redirección)
+      return {
+        token: data.token,
+        rol: data.rol,
+        // user: data.user, // Incluir si el backend devuelve un objeto 'user'
+      };
     } catch (error) {
       console.error("Error en login:", error);
+      // Mantener manejo de errores
       throw error.response?.data || { message: "Error al iniciar sesión" };
     }
   },
@@ -115,7 +105,7 @@ const authServiceImpl = {
       const headers = userData instanceof FormData
         ? { 'Content-Type': 'multipart/form-data' }
         : { 'Content-Type': 'application/json' };
-      
+
       const response = await api.put(`/auth/profile`, userData, { headers });
       return response.data;
     } catch (error) {

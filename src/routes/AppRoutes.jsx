@@ -2,19 +2,18 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Páginas de autenticación
 import Login from '../pages/auth/Login';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import ResetPassword from '../pages/auth/ResetPassword';
 import VerifyEmail from '../pages/auth/VerifyEmail';
 
-// Dashboards por rol
 import AdminDashboard from '../pages/admin/Dashboard';
-import EmpleadoDashboard from '../pages/empleado/Dashboard';  // correcto
+import EmpleadoDashboard from '../pages/empleado/Dashboard';
 import ClienteDashboard from '../pages/cliente/Dashboard';
 
-// Componente de ruta protegida
-const ProtectedRoute = ({ children, allowedRoles }) => {
+import ProtectedLayout from '../components/layout/ProtectedLayout';
+
+const PublicRoute = ({ children }) => {
     const { isAuthenticated, user, loading } = useAuth();
 
     if (loading) {
@@ -25,38 +24,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         );
     }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    // Verificar si el usuario tiene el rol permitido
-    if (allowedRoles && !allowedRoles.includes(user?.rol?.toLowerCase())) {
-        return <Navigate to="/no-autorizado" replace />;
-    }
-
-    return children;
-};
-
-// Reutilizar el ProtectedLayout centralizado
-import ProtectedLayout from '../components/layout/ProtectedLayout';
-
-// Componente para redirigir usuarios autenticados
-const PublicRoute = ({ children }) => {
-    const { isAuthenticated, user } = useAuth();
-
     if (isAuthenticated) {
-        // Redirigir según rol
-        switch (user?.rol?.toLowerCase()) {
-            case 'administrador':
-            case 'admin':
-                return <Navigate to="/admin/dashboard" replace />;
-            case 'empleado':
-                return <Navigate to="/empleado/dashboard" replace />;
-            case 'cliente':
-                return <Navigate to="/cliente/dashboard" replace />;
-            default:
-                return <Navigate to="/" replace />;
-        }
+        const rol = user?.rol?.toLowerCase();
+        if (rol === 'administrador' || rol === 'admin') return <Navigate to="/admin/dashboard" replace />;
+        if (rol === 'empleado') return <Navigate to="/empleado/dashboard" replace />;
+        if (rol === 'cliente') return <Navigate to="/cliente/dashboard" replace />;
     }
 
     return children;
@@ -65,7 +37,8 @@ const PublicRoute = ({ children }) => {
 const AppRoutes = () => {
     return (
         <Routes>
-            {/* Ruta pública - Login */}
+
+            {/* LOGIN */}
             <Route
                 path="/login"
                 element={
@@ -75,43 +48,35 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Rutas del Administrador */}
+            {/* DASHBOARDS */}
             <Route
                 path="/admin/dashboard/*"
                 element={
-                    <ProtectedRoute allowedRoles={['administrador', 'admin']}>
-                        <ProtectedLayout allowedRoles={['administrador', 'admin']}>
-                            <AdminDashboard />
-                        </ProtectedLayout>
-                    </ProtectedRoute>
+                    <ProtectedLayout allowedRoles={['administrador', 'admin']}>
+                        <AdminDashboard />
+                    </ProtectedLayout>
                 }
             />
 
-            {/* Rutas del Empleado */}
             <Route
                 path="/empleado/dashboard/*"
                 element={
-                    <ProtectedRoute allowedRoles={['empleado']}>
-                        <ProtectedLayout allowedRoles={['empleado']}>
-                            <EmpleadoDashboard />
-                        </ProtectedLayout>
-                    </ProtectedRoute>
+                    <ProtectedLayout allowedRoles={['empleado']}>
+                        <EmpleadoDashboard />
+                    </ProtectedLayout>
                 }
             />
 
-            {/* Rutas del Cliente */}
             <Route
                 path="/cliente/dashboard/*"
                 element={
-                    <ProtectedRoute allowedRoles={['cliente']}>
-                        <ProtectedLayout allowedRoles={['cliente']}>
-                            <ClienteDashboard />
-                        </ProtectedLayout>
-                    </ProtectedRoute>
+                    <ProtectedLayout allowedRoles={['cliente']}>
+                        <ClienteDashboard />
+                    </ProtectedLayout>
                 }
             />
 
-            {/* Página de no autorizado */}
+            {/* No Autorizado */}
             <Route
                 path="/no-autorizado"
                 element={
@@ -124,7 +89,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Rutas de recuperación y restablecimiento de contraseña */}
+            {/* Recuperación de contraseña */}
             <Route
                 path="/recuperar-contrasena"
                 element={
@@ -133,6 +98,7 @@ const AppRoutes = () => {
                     </PublicRoute>
                 }
             />
+
             <Route
                 path="/reset-password"
                 element={
@@ -141,7 +107,7 @@ const AppRoutes = () => {
                     </PublicRoute>
                 }
             />
-            {/* Ruta de verificación de email */}
+
             <Route
                 path="/verificar-email"
                 element={
@@ -151,10 +117,10 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Ruta por defecto - redirige a login */}
+            {/* Default */}
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* 404 - Página no encontrada */}
+            {/* 404 */}
             <Route
                 path="*"
                 element={

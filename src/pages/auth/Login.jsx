@@ -1,15 +1,15 @@
 // src/pages/auth/Login.jsx
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-//import { authService } from "../../services/authService.mock";
 import { authService } from '../../services/authService';
 import { Mail, Lock, Eye, EyeOff, Loader2, User, Calendar } from 'lucide-react';
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    correo: '',
     password: '',
     rol: '',
     nombre: '',
@@ -27,7 +27,6 @@ const Login = () => {
       ...prev,
       [name]: value,
     }));
-    // Limpiar error al escribir
     if (error) setError('');
   };
 
@@ -38,103 +37,49 @@ const Login = () => {
     setLoading(true);
 
     if (isRegister) {
-      // Validaciones para registro
-      if (!formData.nombre || !formData.edad || !formData.email || !formData.password) {
-        setError('Por favor complete todos los campos');
-        setLoading(false);
-        return;
-      }
-
-      // Validación de email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        setError('Por favor ingrese un correo válido');
-        setLoading(false);
-        return;
-      }
-
-      // Validación de edad
-      const edad = parseInt(formData.edad);
-      if (isNaN(edad) || edad < 1 || edad > 120) {
-        setError('Por favor ingrese una edad válida');
-        setLoading(false);
-        return;
-      }
-
-      // Validación de contraseña
-      if (formData.password.length < 6) {
-        setError('La contraseña debe tener al menos 6 caracteres');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Llamar al servicio de registro
-        await authService.register({
-          nombre: formData.nombre,
-          edad: edad,
-          email: formData.email,
-          password: formData.password,
-        });
-
-        setSuccess('¡Registro exitoso! Se ha enviado un correo de verificación a tu email. Por favor verifica tu cuenta antes de iniciar sesión.');
-        
-        // Limpiar formulario
-        setFormData({
-          email: '',
-          password: '',
-          rol: '',
-          nombre: '',
-          edad: '',
-        });
-
-        // Cambiar a modo login después de 3 segundos
-        setTimeout(() => {
-          setIsRegister(false);
-          setSuccess('');
-        }, 5000);
-
-      } catch (err) {
-        setError(err.message || 'Error al registrar. Por favor intente nuevamente.');
-      } finally {
-        setLoading(false);
-      }
+      // Lógica para registro
     } else {
-      // Validaciones para login
-      if (!formData.email || !formData.password) {
+      // Lógica para login
+      if (!formData.correo || !formData.password) {
         setError('Por favor complete todos los campos');
         setLoading(false);
         return;
       }
 
-      // Validación de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
+      if (!emailRegex.test(formData.correo)) {
         setError('Por favor ingrese un correo válido');
         setLoading(false);
         return;
       }
 
-      if (!formData.rol) {
-        setError('Por favor seleccione un tipo de usuario');
-        setLoading(false);
-        return;
-      }
-
       try {
-        // Llamar al servicio de login
-        const response = await authService.login(formData.email, formData.password, formData.rol);
+        const response = await authService.login(formData.correo, formData.password);
 
-        // Guardar token y datos del usuario
-        login(response.user, response.token);
+        // Normalizar respuesta: algunos backends devuelven { user, token }, otros { token, rol }
+        const userData = response?.user
+          ? response.user
+          : {
+              // mínimo necesario para la redirección en AuthContext (usa rol si viene)
+              email: formData.correo,
+              rol: response?.rol || response?.user_role || 'cliente',
+            };
 
+        const token = response?.token || response?.token; // fallback simple
+
+        // Guardar en contexto (AuthContext.login)
+        login(userData, token);
+
+        setSuccess('Ingresando...');
       } catch (err) {
         setError(err.message || 'Credenciales incorrectas. Por favor intente nuevamente.');
       } finally {
+        // IMPORTANTE: siempre limpiar loading para evitar botón bloqueado
         setLoading(false);
       }
     }
   };
+  
 
   return (
     <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
@@ -172,18 +117,17 @@ const Login = () => {
                 setError('');
                 setSuccess('');
                 setFormData({
-                  email: '',
+                  correo: '',
                   password: '',
                   rol: '',
                   nombre: '',
                   edad: '',
                 });
               }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                !isRegister
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${!isRegister
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               Iniciar Sesión
             </button>
@@ -194,18 +138,17 @@ const Login = () => {
                 setError('');
                 setSuccess('');
                 setFormData({
-                  email: '',
+                  correo: '',
                   password: '',
                   rol: '',
                   nombre: '',
                   edad: '',
                 });
               }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                isRegister
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${isRegister
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+                }`}
             >
               Registrarse
             </button>
@@ -252,14 +195,14 @@ const Login = () => {
               </>
             )}
 
-            {/* Campo de email */}
+            {/* Campo de corrreo */}
             <div>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
+                  name="correo"
+                  value={formData.correo}
                   onChange={handleChange}
                   placeholder="Correo electrónico"
                   className="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:outline-none transition-colors text-gray-800 placeholder-gray-400"
@@ -292,7 +235,8 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Campo de rol solo para login */}
+            {/*
+            {/* Campo de rol solo para login }
             {!isRegister && (
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Tipo de usuario</label>
@@ -310,7 +254,7 @@ const Login = () => {
                 </select>
               </div>
             )}
-
+            */}
 
             {/* Mensaje de error */}
             {error && (

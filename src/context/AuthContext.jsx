@@ -1,5 +1,6 @@
-// src/context/AuthContext.jsx
-import { createContext, useState, useContext, useEffect } from 'react';
+// src/context/AuthContext.jsx (VERSION ANTI-BUCLE ESTABLE)
+
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthContext = createContext();
@@ -11,7 +12,24 @@ export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Verificar si hay un token guardado al cargar la app
+    // Evita múltiples redirecciones
+    const isRedirectingRef = useRef(false);
+
+    const ROLES = {
+        ADMIN: ['administrador', 'admin'],
+        EMPLEADO: ['empleado'],
+        CLIENTE: ['cliente'],
+    };
+
+    const getTargetRoute = (rol) => {
+        const rolLower = rol?.toLowerCase();
+        if (ROLES.ADMIN.includes(rolLower)) return '/admin/dashboard';
+        if (ROLES.EMPLEADO.includes(rolLower)) return '/empleado/dashboard';
+        if (ROLES.CLIENTE.includes(rolLower)) return '/cliente/dashboard';
+        return '/login';
+    };
+
+    // 1. Cargar estado inicial desde localStorage
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
@@ -19,89 +37,74 @@ export const AuthProvider = ({ children }) => {
         if (storedToken && storedUser) {
             try {
                 const parsed = JSON.parse(storedUser);
-                // Validar que el usuario tenga al menos las propiedades esperadas
-                if (parsed && (parsed.rol || parsed.role) && (parsed.nombre || parsed.name || parsed.email)) {
+
+                if (parsed && (parsed.rol || parsed.role)) {
                     setToken(storedToken);
                     setUser(parsed);
                 } else {
-                    // Datos inválidos: limpiar
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
                 }
-            } catch (err) {
+            } catch {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
             }
         }
+
         setLoading(false);
     }, []);
 
-    // Función de login
+    // 2. MANEJO DE REDIRECCIÓN SIN BUCLES
+    useEffect(() => {
+        // No ejecutar si:
+        if (loading || !token || !user || isRedirectingRef.current) return;
+
+        const target = getTargetRoute(user.rol || user.role);
+
+        // Solo redirige en rutas públicas
+        if (location.pathname === '/' || location.pathname === '/login') {
+            isRedirectingRef.current = true;
+
+            setTimeout(() => {
+                navigate(target, { replace: true });
+                isRedirectingRef.current = false;
+            }, 0);
+        }
+
+    }, [loading, token, user, navigate]); 
+    // ❗ No incluimos location.pathname → evita ciclos
+
+    // Login
     const login = (userData, authToken) => {
         setUser(userData);
         setToken(authToken);
         localStorage.setItem('token', authToken);
         localStorage.setItem('user', JSON.stringify(userData));
-
-        // Redirección según el rol - ejecutar en next tick para evitar navegación durante render
-        setTimeout(() => {
-            redirectByRole(userData?.rol || userData?.role);
-        }, 0);
     };
 
-    // Función de logout
+    // Logout
     const logout = () => {
         setUser(null);
         setToken(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        navigate('/login');
+        navigate('/login', { replace: true });
     };
 
-    // Redirección según rol
-    const ROLES = {
-        ADMIN: ['administrador', 'admin'],
-        EMPLEADO: ['empleado'],
-        CLIENTE: ['cliente']
-    };
-
-    // En la función redirectByRole:
-    const redirectByRole = (rol) => {
-        const rolLower = rol?.toLowerCase();
-        let target = '/';
-        if (ROLES.ADMIN.includes(rolLower)) {
-            target = '/admin/dashboard';
-        } else if (ROLES.EMPLEADO.includes(rolLower)) {
-            target = '/empleado/dashboard';
-        } else if (ROLES.CLIENTE.includes(rolLower)) {
-            target = '/cliente/dashboard';
-        } else {
-            target = '/login';
-        }
-
-        // Evitar redireccionar si ya estamos en la ruta destino
-        if (location?.pathname !== target) {
-            navigate(target);
-        }
-    };
-
-    const value = {
-        user,
-        token,
-        loading,
-        login,
-        logout,
-        isAuthenticated: !!token,
-    };
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                token,
+                loading,
+                login,
+                logout,
+                isAuthenticated: !!token,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
-// Hook personalizado para usar el contexto
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth debe usarse dentro de AuthProvider');
-    }
-    return context;
-};
+export const useAuth = () => useContext(AuthContext);
