@@ -31,54 +31,86 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setSuccess('');
+  setLoading(true);
 
-    if (isRegister) {
-      // Lógica para registro
-    } else {
-      // Lógica para login
-      if (!formData.correo || !formData.password) {
-        setError('Por favor complete todos los campos');
-        setLoading(false);
-        return;
-      }
+  // ---------------------------
+  //  🔹 MODO REGISTRO
+  // ---------------------------
+  if (isRegister) {
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.correo)) {
-        setError('Por favor ingrese un correo válido');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await authService.login(formData.correo, formData.password);
-
-        // Normalizar respuesta: algunos backends devuelven { user, token }, otros { token, rol }
-        const userData = response?.user
-          ? response.user
-          : {
-              // mínimo necesario para la redirección en AuthContext (usa rol si viene)
-              email: formData.correo,
-              rol: response?.rol || response?.user_role || 'cliente',
-            };
-
-        const token = response?.token || response?.token; // fallback simple
-
-        // Guardar en contexto (AuthContext.login)
-        login(userData, token);
-
-        setSuccess('Ingresando...');
-      } catch (err) {
-        setError(err.message || 'Credenciales incorrectas. Por favor intente nuevamente.');
-      } finally {
-        // IMPORTANTE: siempre limpiar loading para evitar botón bloqueado
-        setLoading(false);
-      }
+    if (!formData.correo || !formData.password || !formData.nombre || !formData.edad) {
+      setError('Por favor complete todos los campos para el registro.');
+      setLoading(false);
+      return;
     }
-  };
+
+    try {
+      // Llamar al servicio de registro
+      await authService.register(formData);
+
+      setSuccess('¡Registro exitoso! Revisa tu correo para verificar tu cuenta antes de iniciar sesión.');
+
+      // Limpiar
+      setFormData({ correo: '', password: '', rol: '', nombre: '', edad: '' });
+
+      // Regresar al login automáticamente
+      setTimeout(() => {
+        setIsRegister(false);
+        setSuccess('');
+      }, 5000);
+
+    } catch (err) {
+      setError(err.message || 'Error al registrar. Por favor intente nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+
+    return; // ⬅️ IMPORTANTE: evita que siga con el login
+  }
+
+  // ---------------------------
+  //  🔹 MODO LOGIN
+  // ---------------------------
+
+  if (!formData.correo || !formData.password) {
+    setError('Por favor complete todos los campos');
+    setLoading(false);
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.correo)) {
+    setError('Por favor ingrese un correo válido');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await authService.login(formData.correo, formData.password);
+
+    const userData = response?.user
+      ? response.user
+      : {
+          email: formData.correo,
+          rol: response?.rol || response?.user_role || 'cliente',
+        };
+
+    const token = response?.token;
+
+    login(userData, token);
+
+    setSuccess('Ingresando...');
+
+  } catch (err) {
+    setError(err.message || 'Credenciales incorrectas. Por favor intente nuevamente.');
+  } finally {
+    setLoading(false);
+  }
+};
+
   
 
   return (

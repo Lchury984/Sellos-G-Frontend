@@ -79,9 +79,9 @@ const authServiceImpl = {
   },
 
   // ✅ Recuperación de contraseña
-  forgotPassword: async (email) => {
+  forgotPassword: async (correo) => {
     try {
-      const response = await api.post('/auth/forgot-password', { email });
+      const response = await api.post('/auth/forgot-password', { correo });
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al solicitar recuperación' };
@@ -134,15 +134,15 @@ const authServiceImpl = {
   },
 
   // ✅ Registro de cliente
+  // ✅ Registro de cliente (envía correo correctamente)
   register: async (userData) => {
     try {
-      // El registro siempre es para clientes
       const response = await api.post('/clientes/register', {
         nombre: userData.nombre,
         edad: userData.edad,
-        email: userData.email,
+        correo: userData.correo,   // ⬅️ IMPORTANTE: backend recibe "email"
         password: userData.password,
-        rol: 'cliente', // Siempre se registra como cliente
+        rol: 'cliente',
       });
       return response.data;
     } catch (error) {
@@ -151,16 +151,19 @@ const authServiceImpl = {
     }
   },
 
-  // ✅ Verificar email (opcional - si el backend requiere verificación con token)
+  // authService.js
   verifyEmail: async (token) => {
     try {
-      const response = await api.post('/clientes/verify-email', { token });
+      const response = await api.post('/auth/verify-email', { token });
       return response.data;
     } catch (error) {
-      console.error("Error en verificación de email:", error);
-      throw error.response?.data || { message: 'Error al verificar email' };
+      console.error("Error en verificación de correo:", error);
+      throw error.response?.data || { message: "Token inválido o expirado" };
     }
   },
+
+
+
 };
 
 // 🔍 Debugging temporal
