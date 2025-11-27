@@ -1,18 +1,19 @@
 // src/pages/auth/ResetPassword.jsx
+
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
+  const { token } = useParams(); // <-- token ahora viene de /reset-password/:token
   const navigate = useNavigate();
-  const token = searchParams.get('token');
 
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: '',
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -48,13 +49,11 @@ const ResetPassword = () => {
     e.preventDefault();
     setError('');
 
-    // Validar que las contraseñas coincidan
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
     }
 
-    // Validar fortaleza de la contraseña
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       setError(passwordError);
@@ -71,9 +70,10 @@ const ResetPassword = () => {
     try {
       await authService.resetPassword(token, formData.password);
       setSuccess(true);
+
       setTimeout(() => {
         navigate('/login');
-      }, 3000);
+      }, 2500);
     } catch (err) {
       setError(err.message || 'Error al restablecer la contraseña');
     } finally {
@@ -81,6 +81,7 @@ const ResetPassword = () => {
     }
   };
 
+  
   if (success) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">

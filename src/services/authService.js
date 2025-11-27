@@ -89,14 +89,18 @@ const authServiceImpl = {
   },
 
   // ✅ Restablecer contraseña
-  resetPassword: async (token, newPassword) => {
+  resetPassword: async (token, nuevaContraseña) => {
     try {
-      const response = await api.post('/auth/reset-password', { token, newPassword });
+      const response = await api.patch(`/auth/reset-password/${token}`, {
+        nuevaContraseña,
+      });
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al restablecer contraseña' };
     }
   },
+
+
 
   // ✅ Actualizar perfil
   updateProfile: async (userId, userData) => {

@@ -322,7 +322,7 @@ const Login = () => {
           {/* Enlaces adicionales */}
           <div className="mt-6 text-center">
             <Link
-              to="/recuperar-contrasena"
+              to="/forgot-password"
               className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
             >
               ¿Olvidaste tu contraseña?

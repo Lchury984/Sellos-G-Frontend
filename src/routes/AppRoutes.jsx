@@ -91,7 +91,7 @@ const AppRoutes = () => {
 
             {/* Recuperación de contraseña */}
             <Route
-                path="/recuperar-contrasena"
+                path="/forgot-password"
                 element={
                     <PublicRoute>
                         <ForgotPassword />
@@ -100,7 +100,7 @@ const AppRoutes = () => {
             />
 
             <Route
-                path="/reset-password"
+                path="/reset-password/:token"
                 element={
                     <PublicRoute>
                         <ResetPassword />
