@@ -117,10 +117,10 @@ const authServiceImpl = {
     }
   },
 
-  // ✅ Actualizar contraseña
+  // ✅ Actualizar contraseña (usa el endpoint protegido '/auth/actualizar')
   updatePassword: async (currentPassword, newPassword) => {
     try {
-      const response = await api.patch('/auth/password', { currentPassword, newPassword });
+      const response = await api.patch('/auth/actualizar', { contraseñaActual: currentPassword, nuevaContraseña: newPassword });
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al actualizar contraseña' };

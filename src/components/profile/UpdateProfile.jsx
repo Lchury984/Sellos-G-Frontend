@@ -80,7 +80,6 @@ const UpdateProfile = () => {
 
     try {
       await authService.updatePassword(
-        user.id,
         passwordData.currentPassword,
         passwordData.newPassword
       );
