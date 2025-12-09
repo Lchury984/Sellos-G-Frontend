@@ -1,15 +1,15 @@
 // src/pages/admin/sections/AdminSettings.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings, Save, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import adminService from '../../../services/adminService';
 
 const AdminSettings = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [profileData, setProfileData] = useState({
     nombre: user?.nombre || '',
-    email: user?.email || '',
+    correo: user?.correo || user?.email || '',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -18,6 +18,13 @@ const AdminSettings = () => {
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    setProfileData({
+      nombre: user?.nombre || '',
+      correo: user?.correo || user?.email || '',
+    });
+  }, [user]);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -37,10 +44,17 @@ const AdminSettings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      await adminService.updateProfile(profileData);
+      const updated = await adminService.updateProfile(profileData);
+
+      if (updateUser && updated?.admin) {
+        updateUser({
+          ...updated.admin,
+          email: updated.admin.correo,
+        });
+      }
       setMessage({ type: 'success', text: 'Perfil actualizado correctamente' });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Error al actualizar perfil' });
+      setMessage({ type: 'error', text: error.msg || error.message || 'Error al actualizar perfil' });
     } finally {
       setSaving(false);
     }
@@ -75,7 +89,7 @@ const AdminSettings = () => {
         confirmPassword: '',
       });
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Error al cambiar contraseña' });
+      setMessage({ type: 'error', text: error.msg || error.message || 'Error al cambiar contraseña' });
     } finally {
       setSaving(false);
     }
@@ -153,12 +167,12 @@ const AdminSettings = () => {
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              Correo
             </label>
             <input
               type="email"
-              name="email"
-              value={profileData.email}
+              name="correo"
+              value={profileData.correo}
               onChange={handleProfileChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required

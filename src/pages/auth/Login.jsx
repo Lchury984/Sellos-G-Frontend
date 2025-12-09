@@ -92,9 +92,15 @@ const Login = () => {
     const response = await authService.login(formData.correo, formData.password);
 
     const userData = response?.user
-      ? response.user
+      ? {
+          ...response.user,
+          email: response.user.email || response.user.correo || formData.correo,
+          correo: response.user.correo || response.user.email || formData.correo,
+          rol: response.user.rol || response.rol || response.user_role || 'cliente',
+        }
       : {
           email: formData.correo,
+          correo: formData.correo,
           rol: response?.rol || response?.user_role || 'cliente',
         };
 

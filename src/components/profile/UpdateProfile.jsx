@@ -46,7 +46,7 @@ const UpdateProfile = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      await authService.updateProfile(user.id, profileData);
+      await authService.updateProfile(profileData);
       
       // Actualizar usuario en localStorage
       const updatedUser = { ...user, ...profileData };

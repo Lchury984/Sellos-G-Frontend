@@ -5,7 +5,12 @@ const adminService = {
   // Actualizar perfil del administrador
   updateProfile: async (adminData) => {
     try {
-      const response = await api.put('/admins/profile', adminData);
+      const payload = {
+        nombre: adminData.nombre,
+        correo: adminData.correo || adminData.email,
+      };
+
+      const response = await api.patch('/admins/me', payload);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al actualizar el perfil' };
@@ -15,9 +20,11 @@ const adminService = {
   // Cambiar contraseña del administrador
   changePassword: async (currentPassword, newPassword) => {
     try {
-      const response = await api.patch('/admins/password', {
+      const response = await api.patch('/auth/actualizar', {
         currentPassword,
         newPassword,
+        contraseñaActual: currentPassword,
+        nuevaContraseña: newPassword,
       });
       return response.data;
     } catch (error) {

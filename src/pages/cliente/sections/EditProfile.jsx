@@ -1,6 +1,6 @@
 // src/pages/cliente/sections/EditProfile.jsx
 import { useState, useEffect } from 'react';
-import { User, Camera, Lock, Save, Loader2 } from 'lucide-react';
+import { User, Lock, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { authService } from '../../../services/authService';
 
@@ -8,12 +8,10 @@ const EditProfile = () => {
   const { user, login } = useAuth();
   const [formData, setFormData] = useState({
     nombre: '',
-    email: '',
+    correo: '',
     password: '',
     confirmPassword: '',
   });
-  const [profileImage, setProfileImage] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -22,39 +20,17 @@ const EditProfile = () => {
     if (user) {
       setFormData({
         nombre: user.nombre || '',
-        email: user.email || '',
+        correo: user.correo || user.email || '',
         password: '',
         confirmPassword: '',
       });
-      if (user.fotoPerfil) {
-        setPreviewImage(user.fotoPerfil);
-      }
     }
   }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (error) setError('');
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen no debe exceder 5MB');
-        return;
-      }
-      setProfileImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -77,32 +53,32 @@ const EditProfile = () => {
     setLoading(true);
 
     try {
-      const updateData = new FormData();
-      updateData.append('nombre', formData.nombre);
-      updateData.append('email', formData.email);
-      
+      const payload = {
+        nombre: formData.nombre,
+        correo: formData.correo,
+      };
+
       if (formData.password) {
-        updateData.append('password', formData.password);
+        payload.password = formData.password;
       }
 
-      if (profileImage) {
-        updateData.append('fotoPerfil', profileImage);
-      }
-
-      const response = await authService.updateProfile(user?.id, updateData);
+      const response = await authService.updateProfile(payload);
       
       // Actualizar el contexto con los nuevos datos
       if (response.user) {
         login(response.user, response.token || localStorage.getItem('token'));
       }
 
-      setSuccess('Perfil actualizado exitosamente');
+      if (response?.necesitaVerificar) {
+        setSuccess('Correo actualizado. Revisa tu bandeja para verificar y poder iniciar sesión.');
+      } else {
+        setSuccess('Perfil actualizado exitosamente');
+      }
       setFormData((prev) => ({
         ...prev,
         password: '',
         confirmPassword: '',
       }));
-      setProfileImage(null);
 
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -123,37 +99,6 @@ const EditProfile = () => {
 
       <div className="bg-white rounded-xl shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Foto de perfil */}
-          <div className="flex flex-col items-center">
-            <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                {previewImage ? (
-                  <img
-                    src={previewImage}
-                    alt="Perfil"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-16 h-16 text-gray-400" />
-                )}
-              </div>
-              <label
-                htmlFor="profile-image"
-                className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 transition-colors"
-              >
-                <Camera className="w-4 h-4" />
-              </label>
-              <input
-                type="file"
-                id="profile-image"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </div>
-            <p className="mt-2 text-sm text-gray-500">Haz clic en la cámara para cambiar la foto</p>
-          </div>
-
           {/* Nombre */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -180,8 +125,8 @@ const EditProfile = () => {
             </label>
             <input
               type="email"
-              name="email"
-              value={formData.email}
+              name="correo"
+              value={formData.correo}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

@@ -46,18 +46,14 @@ const authServiceImpl = {
 
       // 2. Realizar la petición
       const response = await api.post(endpoint, { correo, password });
-      const data = response.data; // Esperamos { msg, token, rol }
+      const data = response.data; // Esperamos { msg, token, rol, user }
 
-      // 3. Guardar token y rol en localStorage
+      // 3. Guardar token y rol en localStorage (se refuerza en AuthContext.login)
       if (data.token) localStorage.setItem("token", data.token);
-      if (data.rol) localStorage.setItem("user_role", data.rol); // Guardamos el rol explícitamente
+      if (data.rol) localStorage.setItem("user_role", data.rol);
 
-      // 4. Retornar los datos clave (el rol será usado para la redirección)
-      return {
-        token: data.token,
-        rol: data.rol,
-        // user: data.user, // Incluir si el backend devuelve un objeto 'user'
-      };
+      // 4. Retornar la respuesta completa para que el caller use user/rol/token
+      return data;
     } catch (error) {
       console.error("Error en login:", error);
       // Mantener manejo de errores
@@ -103,14 +99,14 @@ const authServiceImpl = {
 
 
   // ✅ Actualizar perfil
-  updateProfile: async (userId, userData) => {
+  updateProfile: async (userData) => {
     try {
-      // Si userData es FormData, usar multipart/form-data
-      const headers = userData instanceof FormData
+      const isForm = userData instanceof FormData;
+      const headers = isForm
         ? { 'Content-Type': 'multipart/form-data' }
         : { 'Content-Type': 'application/json' };
 
-      const response = await api.put(`/auth/profile`, userData, { headers });
+      const response = await api.patch(`/clientes/me`, userData, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al actualizar perfil' };
