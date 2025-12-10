@@ -1,16 +1,13 @@
 // src/pages/cliente/sections/Catalog.jsx
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Filter, Tag, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import productService from '../../../services/productService';
-import categoryService from '../../../services/categoryService';
-import orderService from '../../../services/orderService';
-import { useAuth } from '../../../context/AuthContext';
+import { ShoppingCart, Filter, Tag, CheckCircle, XCircle, Loader2, Package, Calendar } from 'lucide-react';
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 const Catalog = () => {
-  const { user } = useAuth();
-  const [products, setProducts] = useState([]);
+  const [productosAgrupados, setProductosAgrupados] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('todas');
   const [showPromotions, setShowPromotions] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -18,20 +15,19 @@ const Catalog = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    loadProducts();
-    loadCategories();
+    loadData();
   }, []);
 
-  useEffect(() => {
-    filterProducts();
-  }, [products, selectedCategory, showPromotions]);
-
-  const loadProducts = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await productService.getProducts();
-      const productsData = Array.isArray(response) ? response : response.data || [];
-      setProducts(productsData);
+      const [categoriasRes, productosRes] = await Promise.all([
+        axios.get(`${API_BASE}/productos/categorias`),
+        axios.get(`${API_BASE}/productos/agrupados`),
+      ]);
+
+      setCategories(categoriasRes.data || []);
+      setProductosAgrupados(productosRes.data || []);
     } catch (err) {
       setError('Error al cargar productos');
       console.error(err);
@@ -40,82 +36,45 @@ const Catalog = () => {
     }
   };
 
-  const loadCategories = async () => {
-    try {
-      const response = await categoryService.getCategories();
-      const categoriesData = Array.isArray(response) ? response : response.data || [];
-      setCategories(categoriesData);
-    } catch (err) {
-      console.error('Error al cargar categorías:', err);
-    }
+  const isProductOnPromotion = (product) => {
+    if (!product.descuento || product.descuento <= 0) return false;
+    if (!product.fechaFinPromocion) return false;
+    return new Date() <= new Date(product.fechaFinPromocion);
   };
 
-  const filterProducts = () => {
-    let filtered = [...products];
+  const daysUntilPromoEnd = (fechaFin) => {
+    const hoy = new Date();
+    const fin = new Date(fechaFin);
+    const diff = Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
 
-    // Filtrar por categoría
-    if (selectedCategory !== 'todas') {
-      filtered = filtered.filter(
-        (p) => p.categoriaId === selectedCategory || p.categoria?.id === selectedCategory
-      );
-    }
+  const calculatePromoPrice = (precioActual, descuento) => {
+    return (precioActual - (precioActual * descuento / 100)).toFixed(2);
+  };
 
-    // Filtrar por promociones
-    if (showPromotions) {
-      const now = new Date();
-      filtered = filtered.filter((p) => {
-        if (!p.descuento || p.descuento === 0) return false;
-        const inicio = p.fechaInicioPromocion ? new Date(p.fechaInicioPromocion) : null;
-        const fin = p.fechaFinPromocion ? new Date(p.fechaFinPromocion) : null;
-        if (inicio && fin) {
-          return now >= inicio && now <= fin;
+  const handleSolicitar = (product) => {
+    // Por ahora sin acción
+    console.log('Solicitar producto:', product);
+  };
+
+  // Filtrar productos por categoría y promoción
+  const filteredGrupos = productosAgrupados
+    .map(grupo => ({
+      ...grupo,
+      productos: grupo.productos.filter(product => {
+        // Filtrar por categoría
+        if (selectedCategory !== 'todas' && grupo.categoria._id !== selectedCategory) {
+          return false;
         }
-        return p.descuento > 0;
-      });
-    }
-
-    setFilteredProducts(filtered);
-  };
-
-  const isInPromotion = (product) => {
-    if (!product.descuento || product.descuento === 0) return false;
-    const now = new Date();
-    const inicio = product.fechaInicioPromocion ? new Date(product.fechaInicioPromocion) : null;
-    const fin = product.fechaFinPromocion ? new Date(product.fechaFinPromocion) : null;
-    if (inicio && fin) {
-      return now >= inicio && now <= fin;
-    }
-    return product.descuento > 0;
-  };
-
-  const calculatePrice = (product) => {
-    if (isInPromotion(product)) {
-      const discount = product.descuento || 0;
-      const basePrice = product.precioBase || product.precio;
-      return basePrice * (1 - discount / 100);
-    }
-    return product.precio;
-  };
-
-  const handleOrderProduct = async (productId) => {
-    try {
-      setError('');
-      setSuccess('');
-
-      // Crear pedido simple desde catálogo
-      await orderService.createOrder({
-        productoId: productId,
-        clienteId: user?.id,
-        tipo: 'producto',
-        estado: 'pendiente',
-      });
-
-      setSuccess('Pedido realizado exitosamente');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.message || 'Error al realizar el pedido');
-    }
-  };
+        // Filtrar por promoción
+        if (showPromotions && !isProductOnPromotion(product)) {
+          return false;
+        }
+        return true;
+      })
+    }))
+    .filter(grupo => grupo.productos.length > 0);
 
   return (
     <>
@@ -143,7 +102,7 @@ const Catalog = () => {
             >
               <option value="todas">Todas las categorías</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
+                <option key={cat._id} value={cat._id}>
                   {cat.nombre}
                 </option>
               ))}
@@ -184,100 +143,131 @@ const Catalog = () => {
           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
           <p className="text-gray-500">Cargando productos...</p>
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : filteredGrupos.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <p className="text-gray-500">No hay productos disponibles</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => {
-            const isAvailable = product.estado === 'disponible';
-            const inPromotion = isInPromotion(product);
-            const finalPrice = calculatePrice(product);
-
-            return (
-              <div
-                key={product.id}
-                className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-              >
-                {/* Imagen del producto */}
-                <div className="relative h-48 bg-gray-100">
-                  {product.imagen ? (
-                    <img
-                      src={product.imagen}
-                      alt={product.nombre}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-16 h-16 text-gray-400" />
-                    </div>
-                  )}
-                  {inPromotion && (
-                    <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                      -{product.descuento}%
-                    </div>
-                  )}
-                  <div className="absolute top-2 left-2">
-                    {isAvailable ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Disponible
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                        <XCircle className="w-3 h-3 mr-1" />
-                        No disponible
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Información del producto */}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.nombre}</h3>
-                  {product.descripcion && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {product.descripcion}
-                    </p>
-                  )}
-
-                  {/* Precio */}
-                  <div className="mb-3">
-                    {inPromotion ? (
-                      <div>
-                        <span className="text-lg font-bold text-red-600">
-                          ${finalPrice.toFixed(2)}
-                        </span>
-                        <span className="text-sm text-gray-500 line-through ml-2">
-                          ${(product.precioBase || product.precio).toFixed(2)}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-lg font-bold text-gray-900">
-                        ${product.precio?.toFixed(2) || '0.00'}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Botón realizar pedido */}
-                  <button
-                    onClick={() => handleOrderProduct(product.id)}
-                    disabled={!isAvailable}
-                    className={`w-full py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                      isAvailable
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    {isAvailable ? 'Realizar Pedido' : 'No Disponible'}
-                  </button>
-                </div>
+        <div className="space-y-8">
+          {filteredGrupos.map((grupo, idx) => (
+            <div key={idx}>
+              {/* Encabezado de Categoría */}
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-gray-900">{grupo.categoria.nombre}</h3>
               </div>
-            );
-          })}
+
+              {/* Grid de productos de esta categoría */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {grupo.productos.map((product) => {
+                  const isAvailable = product.estado === 'disponible';
+                  const onPromotion = isProductOnPromotion(product);
+                  const diasRestantes = onPromotion ? daysUntilPromoEnd(product.fechaFinPromocion) : 0;
+                  const promoPrice = onPromotion ? calculatePromoPrice(product.precioActual, product.descuento) : null;
+
+                  return (
+                    <div
+                      key={product._id}
+                      className={`bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all ${
+                        onPromotion ? 'ring-2 ring-orange-500' : ''
+                      }`}
+                    >
+                      {/* Badge de promoción */}
+                      {onPromotion && (
+                        <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 text-center">
+                          🔥 {product.descuento}% OFF
+                        </div>
+                      )}
+
+                      {/* Imagen del producto */}
+                      <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {product.imagenUrl ? (
+                          <img
+                            src={product.imagenUrl}
+                            alt={product.nombre}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <Package className="w-16 h-16 text-gray-400" />
+                        )}
+
+                        {/* Badge de disponibilidad */}
+                        <div className="absolute top-2 left-2">
+                          {isAvailable ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Disponible
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                              <XCircle className="w-3 h-3 mr-1" />
+                              No disponible
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Información del producto */}
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
+                          {product.nombre}
+                        </h3>
+                        {product.descripcion && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {product.descripcion}
+                          </p>
+                        )}
+
+                        {/* Precio */}
+                        <div className="mb-3">
+                          {onPromotion ? (
+                            <div>
+                              <span className="text-lg font-bold text-orange-600">
+                                ${promoPrice}
+                              </span>
+                              <span className="text-sm text-gray-400 line-through ml-2">
+                                ${product.precioActual.toFixed(2)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-lg font-bold text-gray-900">
+                              ${product.precioActual?.toFixed(2) || '0.00'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Info de promoción */}
+                        {onPromotion && (
+                          <div className="mb-3 space-y-1">
+                            <p className="text-xs text-orange-600 font-medium">
+                              ⏰ Termina en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Hasta: {new Date(product.fechaFinPromocion).toLocaleDateString('es-ES')}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Botón Solicitar */}
+                        <button
+                          onClick={() => handleSolicitar(product)}
+                          disabled={!isAvailable}
+                          className={`w-full py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                            isAvailable
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          {isAvailable ? 'Solicitar' : 'No Disponible'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </>

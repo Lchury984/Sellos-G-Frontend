@@ -9,6 +9,7 @@ import {
   Bell,
   MessageSquare
 } from 'lucide-react';
+import AssignedOrders from './sections/AssignedOrders';
 
 // Secciones simples para el dashboard del empleado
 const DashboardHome = () => (
@@ -22,13 +23,6 @@ const Tasks = () => (
   <div>
     <h2 className="text-2xl font-bold mb-4">Tareas</h2>
     <p className="text-gray-600">Lista de tareas asignadas al empleado.</p>
-  </div>
-);
-
-const AssignedOrders = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Pedidos Asignados</h2>
-    <p className="text-gray-600">Aquí verás los pedidos que debes procesar o entregar.</p>
   </div>
 );
 
