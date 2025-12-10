@@ -1,93 +1,133 @@
-// src/pages/admin/sections/Products.jsx
 import { useState, useEffect } from 'react';
-import { Package, Plus, Edit, Trash2, X, Save, Image as ImageIcon, Tag, Calendar } from 'lucide-react';
-import productService from '../../../services/productService';
-import categoryService from '../../../services/categoryService';
+import { Package, Plus, Edit, Trash2, X, Save, Image as ImageIcon, Tag, Calendar, Loader2 } from 'lucide-react';
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 const Products = () => {
-  const [products, setProducts] = useState([]);
+  const [productosAgrupados, setProductosAgrupados] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({
+  const [formDataProduct, setFormDataProduct] = useState({
     nombre: '',
-    precio: '',
     precioBase: '',
-    categoriaId: '',
+    precioActual: '',
+    categoria: '',
     estado: 'disponible',
     descripcion: '',
-    imagen: null,
+    imagenUrl: '',
     descuento: '',
     fechaInicioPromocion: '',
     fechaFinPromocion: '',
   });
-  const [categoryFormData, setCategoryFormData] = useState({
+  const [formDataCategory, setFormDataCategory] = useState({
     nombre: '',
     descripcion: '',
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (message.text) {
+      const timer = setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productsData, categoriesData] = await Promise.all([
-        productService.getProducts(),
-        categoryService.getCategories(),
+      const [categoriasRes, productosRes] = await Promise.all([
+        axios.get(`${API_BASE}/productos/categorias`),
+        axios.get(`${API_BASE}/productos/agrupados`),
       ]);
-      setProducts(Array.isArray(productsData) ? productsData : productsData.data || []);
-      setCategories(Array.isArray(categoriesData) ? categoriesData : categoriesData.data || []);
+
+      setCategories(categoriasRes.data || []);
+      setProductosAgrupados(productosRes.data || []);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Error al cargar datos' });
+      console.error('Error al cargar datos:', error);
+      setMessage({ type: 'error', text: 'Error al cargar datos' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
+  const handleProductChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormDataProduct(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCategoryChange = (e) => {
+    const { name, value } = e.target;
+    setFormDataCategory(prev => ({ ...prev, [name]: value }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({ ...prev, imagen: file }));
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'La imagen no debe exceder 5MB' });
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
+        setFormDataProduct(prev => ({ ...prev, imagenUrl: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCategoryChange = (e) => {
-    const { name, value } = e.target;
-    setCategoryFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validar que si hay descuento, también hay fechas
+      if (formDataProduct.descuento && formDataProduct.descuento > 0) {
+        if (!formDataProduct.fechaInicioPromocion || !formDataProduct.fechaFinPromocion) {
+          setMessage({ type: 'error', text: 'Si estableces un descuento, debes incluir fechas de inicio y fin' });
+          return;
+        }
+      }
+
+      const payload = {
+        nombre: formDataProduct.nombre,
+        descripcion: formDataProduct.descripcion,
+        categoria: formDataProduct.categoria || null,
+        precioBase: parseFloat(formDataProduct.precioBase),
+        precioActual: parseFloat(formDataProduct.precioActual),
+        estado: formDataProduct.estado,
+        imagenUrl: formDataProduct.imagenUrl,
+        descuento: formDataProduct.descuento ? parseFloat(formDataProduct.descuento) : 0,
+        fechaInicioPromocion: formDataProduct.fechaInicioPromocion || null,
+        fechaFinPromocion: formDataProduct.fechaFinPromocion || null
+      };
+
       if (editingProduct) {
-        await productService.updateProduct(editingProduct.id, formData);
+        await axios.put(`${API_BASE}/productos/${editingProduct._id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Producto actualizado correctamente' });
       } else {
-        await productService.createProduct(formData);
+        await axios.post(`${API_BASE}/productos`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Producto creado correctamente' });
       }
-      setShowModal(false);
-      resetForm();
+
+      setShowProductModal(false);
+      resetProductForm();
       fetchData();
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Error al guardar producto' });
+      setMessage({ type: 'error', text: error.response?.data?.msg || 'Error al guardar producto' });
     }
   };
 
@@ -95,72 +135,89 @@ const Products = () => {
     e.preventDefault();
     try {
       if (editingCategory) {
-        await categoryService.updateCategory(editingCategory.id, categoryFormData);
+        await axios.put(`${API_BASE}/productos/categorias/${editingCategory._id}`, formDataCategory, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Categoría actualizada correctamente' });
       } else {
-        await categoryService.createCategory(categoryFormData);
+        await axios.post(`${API_BASE}/productos/categorias`, formDataCategory, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Categoría creada correctamente' });
       }
       setShowCategoryModal(false);
-      setCategoryFormData({ nombre: '', descripcion: '' });
+      setFormDataCategory({ nombre: '', descripcion: '' });
       setEditingCategory(null);
       fetchData();
     } catch (error) {
-      setMessage({ type: 'error', text: error.message || 'Error al guardar categoría' });
+      setMessage({ type: 'error', text: error.response?.data?.msg || 'Error al guardar categoría' });
     }
   };
 
-  const handleEdit = (product) => {
+  const handleEditProduct = (product) => {
     setEditingProduct(product);
-    setFormData({
+    setFormDataProduct({
       nombre: product.nombre || '',
-      precio: product.precio || '',
-      precioBase: product.precioBase || product.precio || '',
-      categoriaId: product.categoriaId || product.categoria?.id || '',
+      precioBase: product.precioBase || '',
+      precioActual: product.precioActual || '',
+      categoria: product.categoria?._id || '',
       estado: product.estado || 'disponible',
       descripcion: product.descripcion || '',
-      imagen: null,
+      imagenUrl: product.imagenUrl || '',
       descuento: product.descuento || '',
-      fechaInicioPromocion: product.fechaInicioPromocion || '',
-      fechaFinPromocion: product.fechaFinPromocion || '',
+      fechaInicioPromocion: product.fechaInicioPromocion ? product.fechaInicioPromocion.split('T')[0] : '',
+      fechaFinPromocion: product.fechaFinPromocion ? product.fechaFinPromocion.split('T')[0] : '',
     });
-    setImagePreview(product.imagen || null);
-    setShowModal(true);
+    setImagePreview(product.imagenUrl || null);
+    setShowProductModal(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setFormDataCategory({
+      nombre: category.nombre || '',
+      descripcion: category.descripcion || '',
+    });
+    setShowCategoryModal(true);
+  };
+
+  const handleDeleteProduct = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este producto?')) {
       try {
-        await productService.deleteProduct(id);
+        await axios.delete(`${API_BASE}/productos/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Producto eliminado correctamente' });
         fetchData();
       } catch (error) {
-        setMessage({ type: 'error', text: error.message || 'Error al eliminar producto' });
+        setMessage({ type: 'error', text: error.response?.data?.msg || 'Error al eliminar' });
       }
     }
   };
 
-  const handleCategoryDelete = async (id) => {
+  const handleDeleteCategory = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta categoría?')) {
       try {
-        await categoryService.deleteCategory(id);
+        await axios.delete(`${API_BASE}/productos/categorias/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setMessage({ type: 'success', text: 'Categoría eliminada correctamente' });
         fetchData();
       } catch (error) {
-        setMessage({ type: 'error', text: error.message || 'Error al eliminar categoría' });
+        setMessage({ type: 'error', text: error.response?.data?.msg || 'Error al eliminar' });
       }
     }
   };
 
-  const resetForm = () => {
-    setFormData({
+  const resetProductForm = () => {
+    setFormDataProduct({
       nombre: '',
-      precio: '',
       precioBase: '',
-      categoriaId: '',
+      precioActual: '',
+      categoria: '',
       estado: 'disponible',
       descripcion: '',
-      imagen: null,
+      imagenUrl: '',
       descuento: '',
       fechaInicioPromocion: '',
       fechaFinPromocion: '',
@@ -170,23 +227,27 @@ const Products = () => {
   };
 
   const isProductOnPromotion = (product) => {
-    if (!product.descuento || !product.fechaInicioPromocion || !product.fechaFinPromocion) {
-      return false;
-    }
-    const now = new Date();
-    const start = new Date(product.fechaInicioPromocion);
-    const end = new Date(product.fechaFinPromocion);
-    return now >= start && now <= end;
+    // Verifica si hay descuento y fecha fin válida (sin depender de tienePromocion del DB)
+    if (!product.descuento || product.descuento <= 0) return false;
+    if (!product.fechaFinPromocion) return false;
+    return new Date() <= new Date(product.fechaFinPromocion);
   };
 
-  const calculatePromotionPrice = (precioBase, descuento) => {
-    return precioBase - (precioBase * descuento / 100);
+  const daysUntilPromoEnd = (fechaFin) => {
+    const hoy = new Date();
+    const fin = new Date(fechaFin);
+    const diff = Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
+  const calculatePromoPrice = (precioActual, descuento) => {
+    return (precioActual - (precioActual * descuento / 100)).toFixed(2);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -208,7 +269,7 @@ const Products = () => {
             onClick={() => {
               setShowCategoryModal(true);
               setEditingCategory(null);
-              setCategoryFormData({ nombre: '', descripcion: '' });
+              setFormDataCategory({ nombre: '', descripcion: '' });
             }}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
@@ -217,8 +278,8 @@ const Products = () => {
           </button>
           <button
             onClick={() => {
-              setShowModal(true);
-              resetForm();
+              setShowProductModal(true);
+              resetProductForm();
             }}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -233,425 +294,431 @@ const Products = () => {
         <div
           className={`mb-4 p-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-green-50 text-green-700'
-              : 'bg-red-50 text-red-700'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
           }`}
         >
           {message.text}
         </div>
       )}
 
-      {/* Lista de Productos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {products.map((product) => {
-          const onPromotion = isProductOnPromotion(product);
-          const promotionPrice = onPromotion
-            ? calculatePromotionPrice(product.precioBase || product.precio, product.descuento)
-            : null;
-
-          return (
-            <div
-              key={product.id}
-              className={`bg-white rounded-xl shadow-sm overflow-hidden ${
-                onPromotion ? 'ring-2 ring-orange-500' : ''
-              }`}
-            >
-              {/* Badge de Promoción */}
-              {onPromotion && (
-                <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 text-center">
-                  🔥 {product.descuento}% OFF
+      {/* Productos por Categoría */}
+      <div className="space-y-8">
+        {productosAgrupados && productosAgrupados.length > 0 ? (
+          productosAgrupados.map((grupo, idx) => (
+            <div key={idx}>
+              {/* Encabezado de Categoría */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{grupo.categoria.nombre}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{grupo.categoria.descripcion}</p>
                 </div>
-              )}
-
-              {/* Imagen */}
-              <div className="h-48 bg-gray-100 flex items-center justify-center">
-                {product.imagen ? (
-                  <img
-                    src={product.imagen}
-                    alt={product.nombre}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <ImageIcon className="w-16 h-16 text-gray-400" />
-                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditCategory(grupo.categoria)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                    title="Editar categoría"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCategory(grupo.categoria._id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Eliminar categoría"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
-              {/* Información */}
-              <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-1">{product.nombre}</h3>
-                <p className="text-xs text-gray-500 mb-2">
-                  {categories.find(c => c.id === product.categoriaId || c.id === product.categoria?.id)?.nombre || 'Sin categoría'}
+              {grupo.productos && grupo.productos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                  {grupo.productos.map((product) => {
+                    const onPromotion = isProductOnPromotion(product);
+                    const promoPrice = onPromotion
+                      ? calculatePromoPrice(product.precioActual, product.descuento)
+                      : null;
+                    const diasRestantes = onPromotion ? daysUntilPromoEnd(product.fechaFinPromocion) : 0;
+
+                    return (
+                      <div
+                        key={product._id}
+                        className={`bg-white rounded-xl shadow-sm overflow-hidden transition-all hover:shadow-lg ${
+                          onPromotion ? 'ring-2 ring-orange-500' : ''
+                        }`}
+                      >
+                        {onPromotion && (
+                          <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 text-center">
+                            🔥 {product.descuento}% OFF
+                          </div>
+                        )}
+
+                        <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                          {product.imagenUrl ? (
+                            <img
+                              src={product.imagenUrl}
+                              alt={product.nombre}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <ImageIcon className="w-16 h-16 text-gray-400" />
+                          )}
+                        </div>
+
+                        <div className="p-4">
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{product.nombre}</h3>
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.descripcion}</p>
+
+                          <div className="flex items-center justify-between mb-2">
+                            {onPromotion ? (
+                              <div>
+                                <span className="text-lg font-bold text-orange-600">
+                                  ${promoPrice}
+                                </span>
+                                <span className="text-sm text-gray-400 line-through ml-2">
+                                  ${product.precioActual.toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-lg font-bold text-gray-900">
+                                ${product.precioActual.toFixed(2)}
+                              </span>
+                            )}
+                            <span
+                              className={`text-xs px-2 py-1 rounded font-medium ${
+                                product.estado === 'disponible'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {product.estado === 'disponible' ? 'Disponible' : 'No disponible'}
+                            </span>
+                          </div>
+
+                          {onPromotion && (
+                            <div className="space-y-1">
+                              <p className="text-xs text-orange-600 mb-1 font-medium">
+                                ⏰ Termina en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Hasta: {new Date(product.fechaFinPromocion).toLocaleDateString('es-ES')}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-200">
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product._id)}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">
+                  No hay productos en esta categoría
                 </p>
-                <div className="flex items-center justify-between mb-2">
-                  {onPromotion ? (
-                    <div>
-                      <span className="text-lg font-bold text-orange-600">
-                        ${promotionPrice?.toFixed(2)}
-                      </span>
-                      <span className="text-sm text-gray-400 line-through ml-2">
-                        ${(product.precioBase || product.precio).toFixed(2)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-lg font-bold text-gray-900">
-                      ${product.precio?.toFixed(2) || '0.00'}
-                    </span>
-                  )}
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      product.estado === 'disponible'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {product.estado === 'disponible' ? 'Disponible' : 'No disponible'}
-                  </span>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Eliminar
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
-          );
-        })}
+          ))
+        ) : (
+          <div className="text-center py-16 bg-gray-50 rounded-lg">
+            <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No hay productos registrados</p>
+          </div>
+        )}
       </div>
 
-      {/* Modal de Producto */}
-      {showModal && (
+      {/* Modal Producto */}
+      {showProductModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    resetForm();
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">
+                {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowProductModal(false);
+                  resetProductForm();
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleProductSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre del Producto *
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={formDataProduct.nombre}
+                  onChange={handleProductChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre
+                    Precio Base *
                   </label>
                   <input
-                    type="text"
-                    name="nombre"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    type="number"
+                    step="0.01"
+                    name="precioBase"
+                    value={formDataProduct.precioBase}
+                    onChange={handleProductChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Precio Actual *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="precioActual"
+                    value={formDataProduct.precioActual}
+                    onChange={handleProductChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoría *
+                </label>
+                <select
+                  name="categoria"
+                  value={formDataProduct.categoria}
+                  onChange={handleProductChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Seleccione una categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado *
+                </label>
+                <select
+                  name="estado"
+                  value={formDataProduct.estado}
+                  onChange={handleProductChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="disponible">Disponible</option>
+                  <option value="no_disponible">No Disponible</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  name="descripcion"
+                  value={formDataProduct.descripcion}
+                  onChange={handleProductChange}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Imagen
+                </label>
+                {imagePreview && (
+                  <div className="mb-3">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Promoción (Opcional)
+                </h4>
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Precio Base
+                      Descuento (%)
                     </label>
                     <input
                       type="number"
-                      step="0.01"
-                      name="precioBase"
-                      value={formData.precioBase}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
+                      min="0"
+                      max="100"
+                      name="descuento"
+                      value={formDataProduct.descuento}
+                      onChange={handleProductChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Precio Actual
+                      Fecha Inicio
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
-                      name="precio"
-                      value={formData.precio}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
+                      type="date"
+                      name="fechaInicioPromocion"
+                      value={formDataProduct.fechaInicioPromocion}
+                      onChange={handleProductChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fecha Fin
+                    </label>
+                    <input
+                      type="date"
+                      name="fechaFinPromocion"
+                      value={formDataProduct.fechaFinPromocion}
+                      onChange={handleProductChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Categoría
-                  </label>
-                  <select
-                    name="categoriaId"
-                    value={formData.categoriaId}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Seleccione una categoría</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Estado
-                  </label>
-                  <select
-                    name="estado"
-                    value={formData.estado}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="disponible">Disponible</option>
-                    <option value="no_disponible">No Disponible</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descripción
-                  </label>
-                  <textarea
-                    name="descripcion"
-                    value={formData.descripcion}
-                    onChange={handleChange}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagen
-                  </label>
-                  {imagePreview && (
-                    <div className="mb-2">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-32 h-32 object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Promociones */}
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Promoción (Opcional)
-                  </h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Descuento (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        name="descuento"
-                        value={formData.descuento}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Inicio
-                      </label>
-                      <input
-                        type="date"
-                        name="fechaInicioPromocion"
-                        value={formData.fechaInicioPromocion}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Fin
-                      </label>
-                      <input
-                        type="date"
-                        name="fechaFinPromocion"
-                        value={formData.fechaFinPromocion}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    <Save className="w-5 h-5" />
-                    Guardar
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProductModal(false);
+                    resetProductForm();
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  <Save className="w-5 h-5" />
+                  Guardar Producto
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Modal de Categoría */}
+      {/* Modal Categoría */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
-                </h3>
+            <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-900">
+                {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setEditingCategory(null);
+                  setFormDataCategory({ nombre: '', descripcion: '' });
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCategorySubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de la Categoría *
+                </label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={formDataCategory.nombre}
+                  onChange={handleCategoryChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción
+                </label>
+                <textarea
+                  name="descripcion"
+                  value={formDataCategory.descripcion}
+                  onChange={handleCategoryChange}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowCategoryModal(false);
                     setEditingCategory(null);
-                    setCategoryFormData({ nombre: '', descripcion: '' });
+                    setFormDataCategory({ nombre: '', descripcion: '' });
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
                 >
-                  <X className="w-6 h-6" />
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                >
+                  <Save className="w-5 h-5" />
+                  Guardar Categoría
                 </button>
               </div>
-
-              <form onSubmit={handleCategorySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre
-                  </label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    value={categoryFormData.nombre}
-                    onChange={handleCategoryChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descripción
-                  </label>
-                  <textarea
-                    name="descripcion"
-                    value={categoryFormData.descripcion}
-                    onChange={handleCategoryChange}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCategoryModal(false);
-                      setEditingCategory(null);
-                      setCategoryFormData({ nombre: '', descripcion: '' });
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                  >
-                    <Save className="w-5 h-5" />
-                    Guardar
-                  </button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
         </div>
       )}
-
-      {/* Lista de Categorías */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Categorías</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className="border border-gray-200 rounded-lg p-4 flex justify-between items-center"
-            >
-              <div>
-                <h4 className="font-semibold text-gray-900">{category.nombre}</h4>
-                {category.descripcion && (
-                  <p className="text-sm text-gray-500 mt-1">{category.descripcion}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setEditingCategory(category);
-                    setCategoryFormData({
-                      nombre: category.nombre || '',
-                      descripcion: category.descripcion || '',
-                    });
-                    setShowCategoryModal(true);
-                  }}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleCategoryDelete(category.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
