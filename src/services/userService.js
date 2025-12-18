@@ -3,6 +3,16 @@ import api from './api';
 
 const userService = {
 
+  // Obtener administradores
+  getAdmins: async () => {
+    try {
+      const response = await api.get('/admins');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Error al obtener administradores' };
+    }
+  },
+
   // Obtener empleados
   getEmpleados: async () => {
     try {
@@ -27,16 +37,23 @@ const userService = {
   // Obtener usuarios por rol
   getUsers: async (rol = null) => {
     try {
-      if (rol === 'empleado') {
+      if (rol === 'administrador') {
+        return await userService.getAdmins();
+      } else if (rol === 'empleado') {
         return await userService.getEmpleados();
       } else if (rol === 'cliente') {
         return await userService.getClientes();
       } else {
-        const [empleados, clientes] = await Promise.all([
+        const [admins, empleados, clientes] = await Promise.all([
+          userService.getAdmins().catch(() => []),
           userService.getEmpleados().catch(() => []),
           userService.getClientes().catch(() => []),
         ]);
-        return [...(Array.isArray(empleados) ? empleados : []), ...(Array.isArray(clientes) ? clientes : [])];
+        return [
+          ...(Array.isArray(admins) ? admins : []), 
+          ...(Array.isArray(empleados) ? empleados : []), 
+          ...(Array.isArray(clientes) ? clientes : [])
+        ];
       }
     } catch (error) {
       throw error.response?.data || { message: 'Error al obtener usuarios' };

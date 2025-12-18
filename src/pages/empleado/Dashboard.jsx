@@ -1,4 +1,5 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   LogOut,
@@ -7,17 +8,97 @@ import {
   ShoppingCart,
   User,
   Bell,
-  MessageSquare
+  MessageSquare,
+  MessagesSquare,
+  Inbox,
 } from 'lucide-react';
+import api from '../../services/api';
 import AssignedOrders from './sections/AssignedOrders';
+import Chat from './sections/Chat';
+import EditProfile from './sections/EditProfile';
+import Notifications from './sections/Notifications';
 
-// Secciones simples para el dashboard del empleado
-const DashboardHome = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Panel del Empleado</h2>
-    <p className="text-gray-600">Resumen rápido de tareas, pedidos asignados y notificaciones.</p>
-  </div>
-);
+// Panel principal con tarjetas-resumen
+const DashboardHome = () => {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ pedidos: 0, noLeidas: 0, conversaciones: 0 });
+  const [ultimasConversaciones, setUltimasConversaciones] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [pedidosRes, notifRes, convRes] = await Promise.all([
+          api.get('/pedidos/asignados').catch(() => ({ data: [] })),
+          api.get('/notificaciones/no-leidas').catch(() => ({ data: [] })),
+          api.get('/chat/conversaciones').catch(() => ({ data: [] })),
+        ]);
+
+        const pedidos = Array.isArray(pedidosRes.data) ? pedidosRes.data : [];
+        const noLeidas = Array.isArray(notifRes.data) ? notifRes.data : [];
+        const conversaciones = Array.isArray(convRes.data) ? convRes.data : [];
+
+        setStats({ pedidos: pedidos.length, noLeidas: noLeidas.length, conversaciones: conversaciones.length });
+        setUltimasConversaciones(conversaciones.slice(0, 3));
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const Card = ({ icon, title, value, subtitle, color = 'bg-blue-50 border-blue-200 text-blue-800' }) => (
+    <div className={`p-6 bg-white rounded-xl shadow-sm border ${color}`}>
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-blue-100 rounded-lg text-blue-700">{icon}</div>
+        <div>
+          <p className="text-sm text-gray-500">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
+      </div>
+      {subtitle && <p className="mt-3 text-sm text-gray-600">{subtitle}</p>}
+    </div>
+  );
+
+  const renderUser = (conv, currentUserId) => {
+    const other = (conv.participantes || []).find((p) => p.id !== currentUserId);
+    return other?.nombre || 'Usuario';
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Panel del Empleado</h2>
+      <p className="text-gray-600 mb-6">Resumen rápido de pedidos asignados, notificaciones y conversaciones.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card icon={<Inbox className="w-6 h-6" />} title="Pedidos asignados" value={stats.pedidos} />
+        <Card icon={<Bell className="w-6 h-6" />} title="Notificaciones no leídas" value={stats.noLeidas} />
+        <Card icon={<MessagesSquare className="w-6 h-6" />} title="Conversaciones" value={stats.conversaciones} />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas conversaciones</h3>
+        {loading ? (
+          <p className="text-gray-500">Cargando...</p>
+        ) : ultimasConversaciones.length === 0 ? (
+          <p className="text-gray-500">Sin conversaciones recientes</p>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {ultimasConversaciones.map((conv) => (
+              <div key={conv.id} className="py-3 flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{renderUser(conv)}</p>
+                  <p className="text-xs text-gray-500 truncate">{conv.ultimoMensaje || 'Sin mensajes'}</p>
+                </div>
+                <span className="text-xs text-gray-400">{new Date(conv.actualizadoEn || conv.updatedAt).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Tasks = () => (
   <div>
@@ -26,26 +107,7 @@ const Tasks = () => (
   </div>
 );
 
-const EditProfile = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Editar Perfil</h2>
-    <p className="text-gray-600">Formulario para actualizar tu información personal.</p>
-  </div>
-);
-
-const Notifications = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Notificaciones</h2>
-    <p className="text-gray-600">Mensajes y alertas relacionadas con tu trabajo.</p>
-  </div>
-);
-
-const Chat = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Chat</h2>
-    <p className="text-gray-600">Comunicación en tiempo real con otros miembros del equipo.</p>
-  </div>
-);
+// EditProfile y Notifications ahora se importan como secciones reales
 
 const EmpleadoDashboard = () => {
   const { user, logout } = useAuth();

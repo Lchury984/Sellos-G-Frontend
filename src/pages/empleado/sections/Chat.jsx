@@ -1,6 +1,6 @@
-// src/pages/cliente/sections/Chat.jsx
+// src/pages/empleado/sections/Chat.jsx
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, User, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, User, Loader2, Shield } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import chatService from '../../../services/chatService';
 import userService from '../../../services/userService';
@@ -77,14 +77,14 @@ const Chat = () => {
 
   const loadUsers = async () => {
     try {
-      // Cliente solo puede chatear con admin y empleados
-      const [admins, empleados] = await Promise.all([
+      // Empleado puede chatear con admin y clientes
+      const [admins, clientes] = await Promise.all([
         userService.getAdmins().catch(() => []),
-        userService.getEmpleados().catch(() => []),
+        userService.getClientes().catch(() => []),
       ]);
       const allUsers = [
         ...(Array.isArray(admins) ? admins : []),
-        ...(Array.isArray(empleados) ? empleados : []),
+        ...(Array.isArray(clientes) ? clientes : []),
       ];
       setUsers(allUsers);
     } catch (err) {
@@ -154,7 +154,7 @@ const Chat = () => {
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Chat</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Comunícate con administradores y empleados en tiempo real
+          Comunícate con administradores y clientes en tiempo real
         </p>
       </div>
 
@@ -192,14 +192,27 @@ const Chat = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex-shrink-0">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <User className="w-5 h-5 text-blue-600" />
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            otherUser?.rol === 'administrador' ? 'bg-purple-100' : 'bg-blue-100'
+                          }`}>
+                            {otherUser?.rol === 'administrador' ? (
+                              <Shield className="w-5 h-5 text-purple-600" />
+                            ) : (
+                              <User className="w-5 h-5 text-blue-600" />
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {otherUser?.nombre || 'Usuario'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {otherUser?.nombre || 'Usuario'}
+                            </p>
+                            {otherUser?.rol === 'administrador' && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-semibold rounded">
+                                Admin
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-500 truncate">
                             {conversation.ultimoMensaje || 'Sin mensajes'}
                           </p>
@@ -218,22 +231,41 @@ const Chat = () => {
           </div>
 
           {/* Lista de usuarios para iniciar conversación */}
-          <div className="border-t border-gray-200 p-4 max-h-64 overflow-y-auto">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Iniciar chat</p>
-            <div className="space-y-2">
-              {users
-                .filter((u) => u.id !== user?.id)
-                .slice(0, 5)
-                .map((userItem) => (
-                  <button
-                    key={userItem.id}
-                    onClick={() => handleStartConversation(userItem.id)}
-                    className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="truncate">{userItem.nombre}</span>
-                  </button>
-                ))}
+          <div className="border-t border-gray-200 p-4 max-h-64 overflow-y-auto space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase">Iniciar chat</p>
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Administrador</p>
+              <div className="space-y-1">
+                {users
+                  .filter((u) => u.id !== user?.id && u.rol === 'administrador')
+                  .map((userItem) => (
+                    <button
+                      key={userItem.id}
+                      onClick={() => handleStartConversation(userItem.id)}
+                      className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <Shield className="w-4 h-4 text-purple-600" />
+                      <span className="truncate">{userItem.nombre}</span>
+                    </button>
+                  ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Clientes</p>
+              <div className="space-y-1">
+                {users
+                  .filter((u) => u.id !== user?.id && u.rol === 'cliente')
+                  .map((userItem) => (
+                    <button
+                      key={userItem.id}
+                      onClick={() => handleStartConversation(userItem.id)}
+                      className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className="truncate">{userItem.nombre}</span>
+                    </button>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
@@ -245,8 +277,16 @@ const Chat = () => {
               {/* Header de conversación */}
               <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    getConversationUser(selectedConversation)?.rol === 'administrador' 
+                      ? 'bg-purple-100' 
+                      : 'bg-blue-100'
+                  }`}>
+                    {getConversationUser(selectedConversation)?.rol === 'administrador' ? (
+                      <Shield className="w-5 h-5 text-purple-600" />
+                    ) : (
+                      <User className="w-5 h-5 text-blue-600" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -359,4 +399,3 @@ const Chat = () => {
 };
 
 export default Chat;
-

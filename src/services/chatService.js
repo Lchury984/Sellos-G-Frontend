@@ -46,16 +46,24 @@ const chatService = {
     }
   },
 
-  // Enviar mensaje
-  sendMessage: async (conversationId, mensaje) => {
+  // Enviar mensaje (texto o media)
+  sendMessage: async (conversationId, payload) => {
     try {
-      const response = await api.post(`/chat/conversaciones/${conversationId}/mensajes`, {
-        mensaje,
-      });
+      const response = await api.post(`/chat/conversaciones/${conversationId}/mensajes`, payload);
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al enviar mensaje' };
     }
+  },
+
+  // Subir adjunto (imagen/video)
+  uploadMedia: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/chat/media', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
 
   // Crear conversación

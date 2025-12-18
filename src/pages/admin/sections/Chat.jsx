@@ -14,6 +14,7 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [users, setUsers] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
 
@@ -77,12 +78,12 @@ const Chat = () => {
   const loadUsers = async () => {
     try {
       const [empleados, clientes] = await Promise.all([
-        userService.getEmpleados().catch(() => ({ data: [] })),
-        userService.getClientes().catch(() => ({ data: [] })),
+        userService.getEmpleados().catch(() => []),
+        userService.getClientes().catch(() => []),
       ]);
       const allUsers = [
-        ...(Array.isArray(empleados) ? empleados : empleados.data || []),
-        ...(Array.isArray(clientes) ? clientes : clientes.data || []),
+        ...(Array.isArray(empleados) ? empleados : []),
+        ...(Array.isArray(clientes) ? clientes : []),
       ];
       setUsers(allUsers);
     } catch (err) {
@@ -112,12 +113,23 @@ const Chat = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!selectedConversation) return;
+    if (!newMessage.trim() && !selectedFile) return;
 
     setSending(true);
     try {
-      await chatService.sendMessage(selectedConversation.id, newMessage.trim());
+      let mediaUrl = '';
+      if (selectedFile) {
+        const upload = await chatService.uploadMedia(selectedFile);
+        mediaUrl = upload.url;
+      }
+
+      await chatService.sendMessage(selectedConversation.id, {
+        mensaje: newMessage.trim(),
+        mediaUrl: mediaUrl || undefined,
+      });
       setNewMessage('');
+      setSelectedFile(null);
     } catch (err) {
       console.error('Error al enviar mensaje:', err);
     } finally {
@@ -197,22 +209,41 @@ const Chat = () => {
         </div>
 
         {/* Lista de usuarios para iniciar conversación */}
-        <div className="border-t border-gray-200 p-4 max-h-64 overflow-y-auto">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Iniciar chat</p>
-          <div className="space-y-2">
-            {users
-              .filter((u) => u.id !== user?.id)
-              .slice(0, 5)
-              .map((userItem) => (
-                <button
-                  key={userItem.id}
-                  onClick={() => handleStartConversation(userItem.id)}
-                  className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="truncate">{userItem.nombre}</span>
-                </button>
-              ))}
+        <div className="border-t border-gray-200 p-4 max-h-64 overflow-y-auto space-y-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase">Iniciar chat</p>
+          <div>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Empleados</p>
+            <div className="space-y-1">
+              {users
+                .filter((u) => u.id !== user?.id && u.rol === 'empleado')
+                .map((userItem) => (
+                  <button
+                    key={userItem.id}
+                    onClick={() => handleStartConversation(userItem.id)}
+                    className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="truncate">{userItem.nombre}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Clientes</p>
+            <div className="space-y-1">
+              {users
+                .filter((u) => u.id !== user?.id && u.rol === 'cliente')
+                .map((userItem) => (
+                  <button
+                    key={userItem.id}
+                    onClick={() => handleStartConversation(userItem.id)}
+                    className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="truncate">{userItem.nombre}</span>
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
       </div>
@@ -252,7 +283,16 @@ const Chat = () => {
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
-                      <p className="text-sm">{message.mensaje}</p>
+                      {message.mediaUrl ? (
+                        <div className="mb-2">
+                          {message.mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) ? (
+                            <video src={message.mediaUrl} controls className="rounded-md max-h-48" />
+                          ) : (
+                            <img src={message.mediaUrl} alt="adjunto" className="rounded-md max-h-48" />
+                          )}
+                        </div>
+                      ) : null}
+                      {message.mensaje && <p className="text-sm break-words">{message.mensaje}</p>}
                       <p
                         className={`text-xs mt-1 ${
                           isOwn ? 'text-blue-100' : 'text-gray-500'
@@ -271,7 +311,19 @@ const Chat = () => {
             </div>
 
             {/* Input de mensaje */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 space-y-2">
+              <div className="flex gap-2 items-center">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="text-sm text-gray-600"
+                  disabled={sending}
+                />
+                {selectedFile && (
+                  <span className="text-xs text-gray-500 truncate">{selectedFile.name}</span>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -283,7 +335,7 @@ const Chat = () => {
                 />
                 <button
                   type="submit"
-                  disabled={!newMessage.trim() || sending}
+                  disabled={(!newMessage.trim() && !selectedFile) || sending}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {sending ? (

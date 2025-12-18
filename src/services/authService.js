@@ -98,7 +98,7 @@ const authServiceImpl = {
 
 
 
-  // ✅ Actualizar perfil
+  // ✅ Actualizar perfil (cliente/empleado/admin según rol actual)
   updateProfile: async (userData) => {
     try {
       const isForm = userData instanceof FormData;
@@ -106,7 +106,15 @@ const authServiceImpl = {
         ? { 'Content-Type': 'multipart/form-data' }
         : { 'Content-Type': 'application/json' };
 
-      const response = await api.patch(`/clientes/me`, userData, { headers });
+      let endpoint = '/clientes/me';
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const rol = (storedUser.rol || storedUser.role || '').toLowerCase();
+        if (rol === 'empleado') endpoint = '/empleados/me';
+        if (rol === 'administrador' || rol === 'admin') endpoint = '/admins/me';
+      } catch { /* ignore */ }
+
+      const response = await api.patch(endpoint, userData, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || { message: 'Error al actualizar perfil' };
