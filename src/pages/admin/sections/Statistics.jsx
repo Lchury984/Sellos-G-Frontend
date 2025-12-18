@@ -1,17 +1,20 @@
 // src/pages/admin/sections/Statistics.jsx
 import { useState, useEffect } from 'react';
-import { Download, FileText, BarChart3, Calendar, Loader2 } from 'lucide-react';
-import reportService from '../../../services/reportService';
+import { Download, FileText, BarChart3, Calendar, Loader2, AlertTriangle } from 'lucide-react';
+import axios from 'axios';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
 const Statistics = () => {
-  const [reportType, setReportType] = useState('ventas'); // 'ventas' o 'inventario'
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
+  const token = localStorage.getItem('token');
 
   // Establecer fechas por defecto (último mes)
   useEffect(() => {
@@ -39,16 +42,14 @@ const Statistics = () => {
     setData(null);
 
     try {
-      let response;
-      if (reportType === 'ventas') {
-        response = await reportService.getSalesData(fechaInicio, fechaFin);
-      } else {
-        response = await reportService.getInventoryData(fechaInicio, fechaFin);
-      }
+      const response = await axios.get(
+        `${API_BASE}/inventario/reporte?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
-      setData(Array.isArray(response) ? response : response.data || []);
+      setData(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      setError(err.message || 'Error al generar el reporte');
+      setError(err.response?.data?.msg || 'Error al generar el reporte');
     } finally {
       setLoading(false);
     }
@@ -60,55 +61,44 @@ const Statistics = () => {
       return;
     }
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 10;
-    let yPosition = 20;
+    try {
+      const doc = new jsPDF();
 
-    // Título
-    doc.setFontSize(18);
-    doc.text(
-      `Reporte de ${reportType === 'ventas' ? 'Ventas' : 'Inventario'}`,
-      margin,
-      yPosition
-    );
-    yPosition += 10;
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Reporte de Inventario', 14, 20);
 
-    // Fechas
-    doc.setFontSize(12);
-    doc.text(`Desde: ${fechaInicio}`, margin, yPosition);
-    yPosition += 5;
-    doc.text(`Hasta: ${fechaFin}`, margin, yPosition);
-    yPosition += 10;
+      // Fechas
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Periodo: ${fechaInicio} al ${fechaFin}`, 14, 28);
+      doc.text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, 14, 34);
 
-    // Encabezados de tabla
-    doc.setFontSize(10);
-    const headers = Object.keys(data[0]);
-    const colWidth = (pageWidth - 2 * margin) / headers.length;
-    let xPosition = margin;
+      // Tabla
+      const tableData = data.map((row) => [
+        row.producto,
+        `${row.salidas} ${row.unidad}`,
+        `${row.stockActual} ${row.unidad}`,
+        row.estado,
+        row.alertaActivada
+      ]);
 
-    headers.forEach((header) => {
-      doc.text(header.toUpperCase(), xPosition, yPosition);
-      xPosition += colWidth;
-    });
-    yPosition += 5;
-
-    // Datos
-    data.forEach((row) => {
-      if (yPosition > 280) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      xPosition = margin;
-      headers.forEach((header) => {
-        const value = row[header]?.toString() || '';
-        doc.text(value.substring(0, 20), xPosition, yPosition);
-        xPosition += colWidth;
+      autoTable(doc, {
+        head: [['Producto', 'Salidas', 'Stock Actual', 'Estado', 'Alerta Activada']],
+        body: tableData,
+        startY: 40,
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [59, 130, 246], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+        margin: { top: 40 }
       });
-      yPosition += 5;
-    });
 
-    doc.save(`reporte_${reportType}_${fechaInicio}_${fechaFin}.pdf`);
+      doc.save(`reporte_inventario_${fechaInicio}_${fechaFin}.pdf`);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      setError('Error al generar el PDF. Verifica la consola para más detalles.');
+    }
   };
 
   const exportToExcel = () => {
@@ -117,42 +107,48 @@ const Statistics = () => {
       return;
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
+    const excelData = data.map((row) => ({
+      'Producto': row.producto,
+      'Salidas': row.salidas,
+      'Entradas': row.entradas,
+      'Unidad': row.unidad,
+      'Stock Actual': row.stockActual,
+      'Stock Mínimo': row.stockMinimo,
+      'Estado': row.estado,
+      'Alerta Activada': row.alertaActivada
+    }));
 
-    XLSX.writeFile(
-      workbook,
-      `reporte_${reportType}_${fechaInicio}_${fechaFin}.xlsx`
-    );
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    
+    // Ajustar anchos de columna
+    worksheet['!cols'] = [
+      { wch: 25 }, // Producto
+      { wch: 12 }, // Salidas
+      { wch: 12 }, // Entradas
+      { wch: 12 }, // Unidad
+      { wch: 15 }, // Stock Actual
+      { wch: 15 }, // Stock Mínimo
+      { wch: 15 }, // Estado
+      { wch: 18 }  // Alerta Activada
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte Inventario');
+    XLSX.writeFile(workbook, `reporte_inventario_${fechaInicio}_${fechaFin}.xlsx`);
   };
 
   return (
     <>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Estadísticas y Reportes</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Estadísticas de Inventario</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Genera reportes de ventas e inventario con filtros por fecha
+          Genera reportes detallados de movimientos de inventario con filtros por fecha
         </p>
       </div>
 
       {/* Filtros */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Reporte
-            </label>
-            <select
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="ventas">Ventas</option>
-              <option value="inventario">Inventario</option>
-            </select>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Fecha Inicio
@@ -211,11 +207,11 @@ const Statistics = () => {
       )}
 
       {/* Resultados */}
-      {data && (
+      {data && data.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
-              Resultados del Reporte ({data.length} registros)
+              Resultados del Reporte ({data.length} materiales)
             </h3>
             <div className="flex gap-2">
               <button
@@ -239,35 +235,65 @@ const Statistics = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  {data.length > 0 &&
-                    Object.keys(data[0]).map((key) => (
-                      <th
-                        key={key}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        {key}
-                      </th>
-                    ))}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Producto
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Salidas
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock Actual
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Alerta Activada
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data.slice(0, 50).map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    {Object.values(row).map((value, cellIndex) => (
-                      <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {value?.toString() || '-'}
-                      </td>
-                    ))}
+                {data.map((row, index) => (
+                  <tr key={index} className={row.estado === 'Bajo stock' ? 'bg-red-50' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{row.producto}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {row.salidas} {row.unidad}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {row.stockActual} {row.unidad}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {row.estado === 'Bajo stock' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Bajo stock
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Normal
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {row.alertaActivada}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {data.length > 50 && (
-              <p className="mt-4 text-sm text-gray-500 text-center">
-                Mostrando 50 de {data.length} registros. Exporta el reporte para ver todos los datos.
-              </p>
-            )}
           </div>
+        </div>
+      )}
+
+      {/* Mensaje cuando no hay movimientos */}
+      {data && data.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+          <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500">
+            No se encontraron movimientos de inventario en el rango de fechas seleccionado
+          </p>
         </div>
       )}
 
@@ -275,8 +301,11 @@ const Statistics = () => {
       {!data && !loading && (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
           <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Generar Reporte de Inventario
+          </h3>
           <p className="text-gray-500">
-            Selecciona un rango de fechas y genera un reporte para ver los datos
+            Selecciona un rango de fechas y genera un reporte de inventario para ver los movimientos
           </p>
         </div>
       )}

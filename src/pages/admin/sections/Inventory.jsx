@@ -11,7 +11,7 @@ const Inventory = () => {
   const [formData, setFormData] = useState({
     nombre: '',
     cantidad: '',
-    unidad: 'unidad',
+    unidad: 'unidades',
     descripcion: '',
     stockMinimo: '',
   });
@@ -105,7 +105,7 @@ const Inventory = () => {
     setFormData({
       nombre: '',
       cantidad: '',
-      unidad: 'unidad',
+      unidad: 'unidades',
       descripcion: '',
       stockMinimo: '',
     });
@@ -299,11 +299,13 @@ const Inventory = () => {
                     onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="unidad">Unidad</option>
-                    <option value="kg">Kilogramos</option>
-                    <option value="litro">Litros</option>
-                    <option value="metro">Metros</option>
-                    <option value="caja">Caja</option>
+                    <option value="unidades">Unidades</option>
+                    <option value="láminas">Láminas</option>
+                    <option value="frascos">Frascos</option>
+                    <option value="kilos">Kilos</option>
+                    <option value="metros">Metros</option>
+                    <option value="litros">Litros</option>
+                    <option value="cajas">Cajas</option>
                   </select>
                 </div>
               </div>

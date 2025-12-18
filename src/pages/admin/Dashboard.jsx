@@ -1,4 +1,5 @@
 // src/pages/admin/Dashboard.jsx
+import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
@@ -17,6 +18,7 @@ import {
   Bell,
   MessagesSquare
 } from 'lucide-react';
+import notificationService from '../../services/notificationService';
 
 // Importar páginas del admin
 import DashboardHome from './sections/DashboardHome';
@@ -34,6 +36,63 @@ const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [toast, setToast] = useState(null);
+  const lastSeenRef = useRef(null);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    let timeoutId;
+    let intervalId;
+
+    const showToast = (notif) => {
+      setToast({
+        title: notif.titulo || 'Nueva notificación',
+        message: notif.mensaje || 'Revisa tus notificaciones',
+        tipo: notif.tipo || 'general'
+      });
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => setToast(null), 5000);
+    };
+
+    const fetchNotifications = async () => {
+      try {
+        const response = await notificationService.getNotifications();
+        const list = Array.isArray(response) ? response : response?.data || [];
+        if (list.length === 0) return;
+
+        const newest = list[0];
+
+        // Primera carga: solo registrar el último visto para no disparar toast inicial
+        if (!initializedRef.current) {
+          lastSeenRef.current = newest.id;
+          initializedRef.current = true;
+          return;
+        }
+
+        // Si hay nueva notificación no leída, mostrar toast
+        const isNew = newest.id && newest.id !== lastSeenRef.current;
+        const isUnread = newest.leida === false;
+        if (isNew && isUnread) {
+          showToast(newest);
+        }
+
+        if (newest.id) {
+          lastSeenRef.current = newest.id;
+        }
+      } catch (error) {
+        // Silenciar errores para no romper el dashboard
+        console.error('Error al obtener notificaciones:', error);
+      }
+    };
+
+    fetchNotifications();
+    intervalId = setInterval(fetchNotifications, 20000);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -215,6 +274,35 @@ const AdminDashboard = () => {
             </Routes>
           </div>
         </main>
+
+        {toast && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <div className="max-w-sm w-full bg-white shadow-xl rounded-lg border border-blue-200 overflow-hidden">
+              <div className="p-4 flex items-start gap-3">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Bell className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900">{toast.title}</p>
+                  <p className="text-sm text-gray-600 mt-1">{toast.message}</p>
+                  <button
+                    onClick={() => navigate('/admin/dashboard/notificaciones')}
+                    className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    Ver notificaciones
+                  </button>
+                </div>
+                <button
+                  onClick={() => setToast(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
