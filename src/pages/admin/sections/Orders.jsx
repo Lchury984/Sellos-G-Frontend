@@ -126,10 +126,10 @@ const Orders = () => {
   const handleEdit = (pedido) => {
     setEditingPedido(pedido);
     setFormData({
-      cliente: pedido.cliente._id,
-      empleadoAsignado: pedido.empleadoAsignado?._id || '',
+      cliente: pedido.cliente.id || pedido.cliente._id,
+      empleadoAsignado: pedido.empleadoAsignado?.id || pedido.empleadoAsignado?._id || '',
       productos: pedido.productos.map(p => ({
-        producto: p.producto._id,
+        producto: p.producto.id || p.producto._id,
         cantidad: p.cantidad
       })),
       estado: pedido.estado,
@@ -324,7 +324,7 @@ const Orders = () => {
                 >
                   <option value="">Seleccione un cliente</option>
                   {clientes.map((cliente) => (
-                    <option key={cliente._id} value={cliente._id}>
+                    <option key={cliente.id || cliente._id} value={cliente.id || cliente._id}>
                       {cliente.nombre} - {cliente.correo}
                     </option>
                   ))}
@@ -343,7 +343,7 @@ const Orders = () => {
                 >
                   <option value="">Sin asignar</option>
                   {empleados.map((emp) => (
-                    <option key={emp._id} value={emp._id}>
+                    <option key={emp.id || emp._id} value={emp.id || emp._id}>
                       {emp.nombre} {emp.apellido}
                     </option>
                   ))}
@@ -375,7 +375,7 @@ const Orders = () => {
                       >
                         <option value="">Seleccione producto</option>
                         {productos.map((prod) => (
-                          <option key={prod._id} value={prod._id}>
+                          <option key={prod.id || prod._id} value={prod.id || prod._id}>
                             {prod.nombre} - ${prod.precioActual?.toFixed(2)}
                           </option>
                         ))}

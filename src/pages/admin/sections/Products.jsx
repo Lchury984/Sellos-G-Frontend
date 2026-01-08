@@ -12,6 +12,7 @@ const Products = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState({});
   const [formDataProduct, setFormDataProduct] = useState({
     nombre: '',
     precioBase: '',
@@ -244,6 +245,13 @@ const Products = () => {
     return (precioActual - (precioActual * descuento / 100)).toFixed(2);
   };
 
+  const toggleCategoryExpanded = (categoryId) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -332,8 +340,9 @@ const Products = () => {
               </div>
 
               {grupo.productos && grupo.productos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {grupo.productos.map((product) => {
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {grupo.productos.slice(0, expandedCategories[grupo.categoria._id] ? grupo.productos.length : 3).map((product) => {
                     const onPromotion = isProductOnPromotion(product);
                     const promoPrice = onPromotion
                       ? calculatePromoPrice(product.precioActual, product.descuento)
@@ -426,7 +435,18 @@ const Products = () => {
                       </div>
                     );
                   })}
-                </div>
+                  </div>
+                  {grupo.productos.length > 3 && (
+                    <div className="flex justify-center mb-8">
+                      <button
+                        onClick={() => toggleCategoryExpanded(grupo.categoria._id)}
+                        className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                      >
+                        {expandedCategories[grupo.categoria._id] ? 'Ver menos' : 'Ver más'}
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">
                   No hay productos en esta categoría

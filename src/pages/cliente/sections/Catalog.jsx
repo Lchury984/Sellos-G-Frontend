@@ -13,6 +13,7 @@ const Catalog = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState({});
 
   useEffect(() => {
     loadData();
@@ -53,9 +54,11 @@ const Catalog = () => {
     return (precioActual - (precioActual * descuento / 100)).toFixed(2);
   };
 
-  const handleSolicitar = (product) => {
-    // Por ahora sin acción
-    console.log('Solicitar producto:', product);
+  const toggleCategoryExpanded = (categoryId) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
   };
 
   // Filtrar productos por categoría y promoción
@@ -158,114 +161,126 @@ const Catalog = () => {
               </div>
 
               {/* Grid de productos de esta categoría */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {grupo.productos.map((product) => {
-                  const isAvailable = product.estado === 'disponible';
-                  const onPromotion = isProductOnPromotion(product);
-                  const diasRestantes = onPromotion ? daysUntilPromoEnd(product.fechaFinPromocion) : 0;
-                  const promoPrice = onPromotion ? calculatePromoPrice(product.precioActual, product.descuento) : null;
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {grupo.productos.slice(0, expandedCategories[grupo.categoria._id] ? grupo.productos.length : 3).map((product) => {
+                    const isAvailable = product.estado === 'disponible';
+                    const onPromotion = isProductOnPromotion(product);
+                    const diasRestantes = onPromotion ? daysUntilPromoEnd(product.fechaFinPromocion) : 0;
+                    const promoPrice = onPromotion ? calculatePromoPrice(product.precioActual, product.descuento) : null;
 
-                  return (
-                    <div
-                      key={product._id}
-                      className={`bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all ${
-                        onPromotion ? 'ring-2 ring-orange-500' : ''
-                      }`}
-                    >
-                      {/* Badge de promoción */}
-                      {onPromotion && (
-                        <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 text-center">
-                          🔥 {product.descuento}% OFF
-                        </div>
-                      )}
-
-                      {/* Imagen del producto */}
-                      <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {product.imagenUrl ? (
-                          <img
-                            src={product.imagenUrl}
-                            alt={product.nombre}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform"
-                          />
-                        ) : (
-                          <Package className="w-16 h-16 text-gray-400" />
-                        )}
-
-                        {/* Badge de disponibilidad */}
-                        <div className="absolute top-2 left-2">
-                          {isAvailable ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Disponible
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
-                              <XCircle className="w-3 h-3 mr-1" />
-                              No disponible
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Información del producto */}
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
-                          {product.nombre}
-                        </h3>
-                        {product.descripcion && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                            {product.descripcion}
-                          </p>
-                        )}
-
-                        {/* Precio */}
-                        <div className="mb-3">
-                          {onPromotion ? (
-                            <div>
-                              <span className="text-lg font-bold text-orange-600">
-                                ${promoPrice}
-                              </span>
-                              <span className="text-sm text-gray-400 line-through ml-2">
-                                ${product.precioActual.toFixed(2)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-lg font-bold text-gray-900">
-                              ${product.precioActual?.toFixed(2) || '0.00'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Info de promoción */}
+                    return (
+                      <div
+                        key={product._id}
+                        className={`bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition-all ${
+                          onPromotion ? 'ring-2 ring-orange-500' : ''
+                        }`}
+                      >
+                        {/* Badge de promoción */}
                         {onPromotion && (
-                          <div className="mb-3 space-y-1">
-                            <p className="text-xs text-orange-600 font-medium">
-                              ⏰ Termina en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Hasta: {new Date(product.fechaFinPromocion).toLocaleDateString('es-ES')}
-                            </p>
+                          <div className="bg-orange-500 text-white text-xs font-semibold px-3 py-1 text-center">
+                            🔥 {product.descuento}% OFF
                           </div>
                         )}
 
-                        {/* Botón Solicitar */}
-                        <button
-                          onClick={() => handleSolicitar(product)}
-                          disabled={!isAvailable}
-                          className={`w-full py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-                            isAvailable
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          {isAvailable ? 'Solicitar' : 'No Disponible'}
-                        </button>
+                        {/* Imagen del producto */}
+                        <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                          {product.imagenUrl ? (
+                            <img
+                              src={product.imagenUrl}
+                              alt={product.nombre}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <Package className="w-16 h-16 text-gray-400" />
+                          )}
+
+                          {/* Badge de disponibilidad */}
+                          <div className="absolute top-2 left-2">
+                            {isAvailable ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Disponible
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
+                                <XCircle className="w-3 h-3 mr-1" />
+                                No disponible
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Información del producto */}
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
+                            {product.nombre}
+                          </h3>
+                          {product.descripcion && (
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                              {product.descripcion}
+                            </p>
+                          )}
+
+                          {/* Precio */}
+                          <div className="mb-3">
+                            {onPromotion ? (
+                              <div>
+                                <span className="text-lg font-bold text-orange-600">
+                                  ${promoPrice}
+                                </span>
+                                <span className="text-sm text-gray-400 line-through ml-2">
+                                  ${product.precioActual.toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-lg font-bold text-gray-900">
+                                ${product.precioActual?.toFixed(2) || '0.00'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Info de promoción */}
+                          {onPromotion && (
+                            <div className="mb-3 space-y-1">
+                              <p className="text-xs text-orange-600 font-medium">
+                                ⏰ Termina en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Hasta: {new Date(product.fechaFinPromocion).toLocaleDateString('es-ES')}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Botón Solicitar */}
+                          <button
+                            onClick={() => console.log('Solicitar producto:', product)}
+                            disabled={!isAvailable}
+                            className={`w-full py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                              isAvailable
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            {isAvailable ? 'Solicitar' : 'No Disponible'}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                {grupo.productos.length > 3 && (
+                  <div className="flex justify-center mb-8 mt-4">
+                    <button
+                      onClick={() => toggleCategoryExpanded(grupo.categoria._id)}
+                      className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      {expandedCategories[grupo.categoria._id] ? 'Ver menos' : 'Ver más'}
+                    </button>
+                  </div>
+                )}
+              </>
             </div>
           ))}
         </div>
