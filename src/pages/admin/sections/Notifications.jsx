@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import notificationService from '../../../services/notificationService';
 
-const Notifications = () => {
+const Notifications = ({ onNotificationsChange }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todas'); // 'todas', 'no-leidas'
@@ -78,12 +78,19 @@ const Notifications = () => {
           prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
         );
       });
+      // Actualizar contador en el Dashboard
+      if (onNotificationsChange) {
+        onNotificationsChange();
+      }
     } catch (err) {
       // Si es 404, hacer fallback local
       if (err.response?.status === 404) {
         setNotifications((prev) =>
           prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
         );
+        if (onNotificationsChange) {
+          onNotificationsChange();
+        }
       } else {
         console.error('Error al marcar como leída:', err);
       }
@@ -97,10 +104,17 @@ const Notifications = () => {
         // Fallback: marcar todas como leídas localmente
         setNotifications((prev) => prev.map((n) => ({ ...n, leida: true })));
       });
+      // Actualizar contador en el Dashboard
+      if (onNotificationsChange) {
+        onNotificationsChange();
+      }
     } catch (err) {
       // Si es 404, hacer fallback local
       if (err.response?.status === 404) {
         setNotifications((prev) => prev.map((n) => ({ ...n, leida: true })));
+        if (onNotificationsChange) {
+          onNotificationsChange();
+        }
       } else {
         console.error('Error al marcar todas como leídas:', err);
       }

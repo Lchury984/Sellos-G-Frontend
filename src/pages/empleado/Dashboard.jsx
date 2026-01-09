@@ -1,5 +1,5 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   LogOut,
@@ -13,6 +13,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import api from '../../services/api';
+import notificationService from '../../services/notificationService';
 import AssignedOrders from './sections/AssignedOrders';
 import Chat from './sections/Chat';
 import EditProfile from './sections/EditProfile';
@@ -47,16 +48,16 @@ const DashboardHome = () => {
     load();
   }, []);
 
-  const Card = ({ icon, title, value, subtitle, color = 'bg-blue-50 border-blue-200 text-blue-800' }) => (
-    <div className={`p-6 bg-white rounded-xl shadow-sm border ${color}`}>
+  const Card = ({ icon, title, value, subtitle }) => (
+    <div className="p-6 ui-card">
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-blue-100 rounded-lg text-blue-700">{icon}</div>
+        <div className="ui-icon-badge">{icon}</div>
         <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm ui-text">{title}</p>
+          <p className="text-2xl font-bold ui-title">{value}</p>
         </div>
       </div>
-      {subtitle && <p className="mt-3 text-sm text-gray-600">{subtitle}</p>}
+      {subtitle && <p className="mt-3 text-sm ui-text">{subtitle}</p>}
     </div>
   );
 
@@ -67,8 +68,8 @@ const DashboardHome = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Panel del Empleado</h2>
-      <p className="text-gray-600 mb-6">Resumen rápido de pedidos asignados, notificaciones y conversaciones.</p>
+      <h2 className="ui-title text-2xl mb-4">Panel del Empleado</h2>
+      <p className="ui-subtitle mb-6">Resumen rápido de pedidos asignados, notificaciones y conversaciones.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card icon={<Inbox className="w-6 h-6" />} title="Pedidos asignados" value={stats.pedidos} />
@@ -76,21 +77,21 @@ const DashboardHome = () => {
         <Card icon={<MessagesSquare className="w-6 h-6" />} title="Conversaciones" value={stats.conversaciones} />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Últimas conversaciones</h3>
+      <div className="ui-card p-6">
+        <h3 className="text-lg font-semibold ui-title mb-4">Últimas conversaciones</h3>
         {loading ? (
-          <p className="text-gray-500">Cargando...</p>
+          <p className="text-slate-400">Cargando...</p>
         ) : ultimasConversaciones.length === 0 ? (
-          <p className="text-gray-500">Sin conversaciones recientes</p>
+          <p className="text-slate-400">Sin conversaciones recientes</p>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-slate-700">
             {ultimasConversaciones.map((conv) => (
-              <div key={conv.id} className="py-3 flex items-center justify-between">
+              <div key={conv.id} className="py-3 flex items-center justify-between hover:bg-slate-700/30 px-3 rounded-lg transition-colors">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{renderUser(conv)}</p>
-                  <p className="text-xs text-gray-500 truncate">{conv.ultimoMensaje || 'Sin mensajes'}</p>
+                  <p className="text-sm font-medium text-slate-100 truncate">{renderUser(conv)}</p>
+                  <p className="text-xs text-slate-400 truncate">{conv.ultimoMensaje || 'Sin mensajes'}</p>
                 </div>
-                <span className="text-xs text-gray-400">{new Date(conv.actualizadoEn || conv.updatedAt).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-xs text-slate-500">{new Date(conv.actualizadoEn || conv.updatedAt).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
             ))}
           </div>
@@ -113,49 +114,67 @@ const EmpleadoDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const intervalIdRef = useRef(null);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await notificationService.getNotifications();
+      const list = Array.isArray(response) ? response : response?.data || [];
+      const unread = list.filter(notif => notif.leida === false).length;
+      setUnreadCount(unread);
+    } catch (error) {
+      console.error('Error al obtener notificaciones:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    intervalIdRef.current = setInterval(fetchUnreadCount, 20000);
+
+    return () => {
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <aside className="w-64 bg-white border-r border-gray-200">
+    <div className="flex h-screen bg-slate-900 role-empleado">
+      <aside className="w-64 bg-slate-800 border-r border-slate-700 shadow-xl">
         <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Sellos-G</h1>
-            <p className="text-sm text-gray-500 mt-1">Empleado</p>
+          <div className="p-6 border-b border-slate-700">
+            <h1 className="text-2xl font-bold text-amber-400">Sellos-G</h1>
+            <p className="text-sm text-slate-400 mt-1">Empleado</p>
           </div>
 
           <nav className="flex-1 overflow-y-auto p-4">
             <div className="space-y-1">
               <button
                 onClick={() => navigate('/empleado/dashboard')}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/empleado/dashboard'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                className={`w-full flex items-center ui-nav-btn mb-1 ${
+                  location.pathname === '/empleado/dashboard' ? 'active' : ''
                 }`}
               >
-                <LayoutDashboard className="w-5 h-5 mr-3" />
+                <LayoutDashboard className="w-5 h-5 mr-3 " />
                 Panel Principal
               </button>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Operaciones</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Operaciones</p>
                 <button
                   onClick={() => navigate('/empleado/dashboard/tareas')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/empleado/dashboard/tareas'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/empleado/dashboard/tareas' ? 'active' : ''
                   }`}
                 >
-                  <Clipboard className="w-5 h-5 mr-3" />
+                  <Clipboard className="w-5 h-5 mr-3 " />
                   Tareas
                 </button>
                 <button
                   onClick={() => navigate('/empleado/dashboard/pedidos')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/empleado/dashboard/pedidos'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/empleado/dashboard/pedidos' ? 'active' : ''
                   }`}
                 >
                   <ShoppingCart className="w-5 h-5 mr-3" />
@@ -164,57 +183,56 @@ const EmpleadoDashboard = () => {
               </div>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Perfil</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Perfil</p>
                 <button
                   onClick={() => navigate('/empleado/dashboard/editar-perfil')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/empleado/dashboard/editar-perfil'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/empleado/dashboard/editar-perfil' ? 'active' : ''
                   }`}
                 >
-                  <User className="w-5 h-5 mr-3" />
+                  <User className="w-5 h-5 mr-3 " />
                   Editar Perfil
                 </button>
               </div>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Comunicación</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Comunicación</p>
                 <button
                   onClick={() => navigate('/empleado/dashboard/notificaciones')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/empleado/dashboard/notificaciones'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/empleado/dashboard/notificaciones' ? 'active' : ''
                   }`}
                 >
-                  <Bell className="w-5 h-5 mr-3" />
+                  <Bell className="w-5 h-5 mr-3 " />
                   Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="ml-auto bg-red-500/20 text-red-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => navigate('/empleado/dashboard/chat')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/empleado/dashboard/chat'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/empleado/dashboard/chat' ? 'active' : ''
                   }`}
                 >
-                  <MessageSquare className="w-5 h-5 mr-3" />
+                  <MessageSquare className="w-5 h-5 mr-3 " />
                   Chat
                 </button>
               </div>
             </div>
           </nav>
 
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-slate-700">
             <div className="flex items-center">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.nombre || 'Empleado'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-sm font-semibold text-slate-100 truncate">{user?.nombre || 'Empleado'}</p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
               </div>
               <button
                 onClick={logout}
-                className="ml-2 flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                className="ml-2 flex items-center justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg hover:text-red-300 transition-colors"
                 title="Cerrar sesión"
               >
                 <LogOut className="w-5 h-5" />
@@ -224,15 +242,15 @@ const EmpleadoDashboard = () => {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+        <main className="flex-1 overflow-y-auto bg-slate-900 p-6">
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<DashboardHome />} />
               <Route path="/tareas" element={<Tasks />} />
               <Route path="/pedidos" element={<AssignedOrders />} />
               <Route path="/editar-perfil" element={<EditProfile />} />
-              <Route path="/notificaciones" element={<Notifications />} />
+              <Route path="/notificaciones" element={<Notifications onNotificationsChange={fetchUnreadCount} />} />
               <Route path="/chat" element={<Chat />} />
             </Routes>
           </div>

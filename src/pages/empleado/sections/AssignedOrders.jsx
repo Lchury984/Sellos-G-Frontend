@@ -88,15 +88,15 @@ const AssignedOrders = () => {
       )}
 
       {pedidos.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <ClipboardList className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No tienes pedidos asignados</h3>
-          <p className="text-gray-500">Los pedidos que te asigne el administrador aparecerán aquí</p>
+        <div className="ui-card p-12 text-center">
+          <ClipboardList className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <h3 className="text-lg font-semibold ui-title mb-2">No tienes pedidos asignados</h3>
+          <p className="ui-text">Los pedidos que te asigne el administrador aparecerán aquí</p>
         </div>
       ) : (
         <div className="space-y-4">
           {pedidos.map((pedido) => (
-            <div key={pedido._id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+            <div key={pedido._id} className="ui-card overflow-hidden">
               <div className="p-6">
                 {/* Header del pedido */}
                 <div className="flex justify-between items-start mb-4">
@@ -120,8 +120,8 @@ const AssignedOrders = () => {
                 </div>
 
                 {/* Información del cliente */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Cliente</h4>
+                <div className="mb-4 p-4 ui-card rounded-lg">
+                  <h4 className="text-sm font-medium ui-title mb-2">Cliente</h4>
                   <div className="text-sm text-gray-900">
                     <p className="font-semibold">{pedido.cliente?.nombre}</p>
                     <p className="text-gray-600">{pedido.cliente?.correo}</p>
@@ -161,32 +161,32 @@ const AssignedOrders = () => {
 
                 {/* Nota del administrador */}
                 {pedido.notaEmpleado && (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="mb-4 p-4 ui-card rounded-lg border-l-4 border-amber-500">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="text-sm font-medium text-blue-900 mb-1">Nota del administrador</h4>
-                        <p className="text-sm text-blue-700">{pedido.notaEmpleado}</p>
+                        <h4 className="text-sm font-medium ui-title mb-1">Nota del administrador</h4>
+                        <p className="text-sm ui-text">{pedido.notaEmpleado}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Total */}
-                <div className="mb-4 p-4 bg-gray-900 rounded-lg text-white flex justify-between items-center">
-                  <span className="font-semibold">Total del Pedido</span>
-                  <span className="text-2xl font-bold">${pedido.total.toFixed(2)}</span>
+                <div className="mb-4 p-4 ui-card flex justify-between items-center">
+                  <span className="font-semibold ui-text">Total del Pedido</span>
+                  <span className="text-2xl font-bold ui-title">${pedido.total.toFixed(2)}</span>
                 </div>
 
                 {/* Control de estado */}
-                <div className="border-t border-gray-200 pt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="border-t border-gray-700 pt-4">
+                  <label className="block text-sm font-medium ui-text mb-2">
                     Actualizar Estado del Pedido
                   </label>
                   <select
                     value={pedido.estado}
                     onChange={(e) => handleEstadoChange(pedido._id, e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full"
                   >
                     <option value="pendiente">Pendiente</option>
                     <option value="en proceso">En Proceso</option>

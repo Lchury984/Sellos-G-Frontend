@@ -185,15 +185,15 @@ const Orders = () => {
     <div>
       <div className="mb-8 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de Pedidos</h2>
-          <p className="mt-1 text-sm text-gray-600">Administra los pedidos de los clientes</p>
+          <h2 className="text-2xl font-bold ui-title">Gestión de Pedidos</h2>
+          <p className="mt-1 text-sm ui-text">Administra los pedidos de los clientes</p>
         </div>
         <button
           onClick={() => {
             resetForm();
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 ui-btn-primary"
         >
           <Plus className="w-5 h-5" />
           Nuevo Pedido
@@ -272,7 +272,8 @@ const Orders = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(pedido)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400 rounded-lg transition-colors"
+                          title="Editar"
                         >
                           <Edit className="w-4 h-4" />
                         </button>

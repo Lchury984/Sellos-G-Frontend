@@ -3,13 +3,36 @@
 @tailwind utilities;
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
   font-weight: 400;
 
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+  /* Paleta de colores profesional mejorada */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1a2332;
+  --bg-tertiary: #2a3547;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #3a4a5f;
+  --border-light: #2a3a4f;
+  
+  /* Colores de rol mejorados */
+  --accent-admin: #3b82f6;
+  --accent-admin-dark: #1e40af;
+  --accent-admin-light: #60a5fa;
+  
+  --accent-cliente: #10b981;
+  --accent-cliente-dark: #047857;
+  --accent-cliente-light: #34d399;
+  
+  --accent-empleado: #f59e0b;
+  --accent-empleado-dark: #d97706;
+  --accent-empleado-light: #fbbf24;
+  
+  color-scheme: dark;
+  color: var(--text-primary);
+  background: var(--bg-primary);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,11 +42,12 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #60a5fa;
   text-decoration: inherit;
+  transition: color 0.3s ease;
 }
 a:hover {
-  color: #535bf2;
+  color: #93c5fd;
 }
 
 html, body, #root {
@@ -34,13 +58,34 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-
-  /* No usamos display:flex globalmente para no centrar el root por defecto */
+  background: var(--bg-primary);
 }
 
-/* Fondo global para evitar "lados blancos" cuando el contenido es full-width */
-body {
-  background-color: #f9fafb; /* tailwind gray-50 */
+/* Scrollbar profesional */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  border: 2px solid var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
 }
 
 h1 {
@@ -83,4 +128,328 @@ button:focus-visible {
   button {
     background-color: #e0c8c8;
   }
+}
+
+/* Roles: acentos por tipo de usuario */
+.role-admin { --accent: #3b82f6; }
+.role-cliente { --accent: #10b981; }
+.role-empleado { --accent: #f59e0b; }
+
+/* Utilidades de UI para el tema oscuro profesional */
+.ui-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.ui-subtitle {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.ui-text {
+  color: var(--text-secondary);
+}
+
+.ui-card {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(42, 53, 71, 0.5) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease-in-out;
+}
+.ui-card:hover {
+  border-color: var(--border-color);
+  box-shadow: 0 15px 40px rgba(2, 6, 23, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.ui-icon-badge {
+  background: var(--accent);
+  color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Botones mejorados */
+.ui-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.ui-btn:hover {
+  background: var(--border-color);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+.ui-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+}
+.ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ui-btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(59, 130, 246, 0.8) 100%);
+  color: #ffffff;
+  border-color: transparent;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+.ui-btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+.ui-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.ui-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.ui-btn-secondary:hover {
+  background: rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.ui-btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, rgba(239, 68, 68, 0.8) 100%);
+  color: #ffffff;
+  border-color: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+}
+.ui-btn-danger:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px);
+}
+
+.ui-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+.ui-btn-ghost:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ui-link-accent {
+  color: var(--accent);
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+.ui-link-accent:hover {
+  opacity: 0.8;
+  filter: brightness(1.15);
+}
+
+.ui-toast {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(2, 6, 23, 0.4);
+}
+
+/* Formularios y celdas de texto visibles en tema oscuro */
+input,
+textarea,
+select {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  font-family: inherit;
+  font-size: 1em;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--border-color);
+  background: rgba(42, 53, 71, 0.8);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), inset 0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+/* Overrides para utilidades Tailwind frecuentes en componentes existentes */
+.role-admin .bg-white,
+.role-cliente .bg-white,
+.role-empleado .bg-white { background: var(--bg-secondary) !important; }
+
+.role-admin .bg-gray-50,
+.role-cliente .bg-gray-50,
+.role-empleado .bg-gray-50 { background: var(--bg-secondary) !important; }
+
+.role-admin .bg-gray-100,
+.role-cliente .bg-gray-100,
+.role-empleado .bg-gray-100 { background: var(--bg-tertiary) !important; }
+
+/* Slate palette overrides */
+.role-admin .bg-slate-50,
+.role-cliente .bg-slate-50,
+.role-empleado .bg-slate-50 { background: var(--bg-secondary) !important; }
+
+.role-admin .bg-slate-100,
+.role-cliente .bg-slate-100,
+.role-empleado .bg-slate-100 { background: var(--bg-tertiary) !important; }
+
+.role-admin .border-gray-200,
+.role-cliente .border-gray-200,
+.role-empleado .border-gray-200 { border-color: var(--border-color) !important; }
+
+.role-admin .border-gray-300,
+.role-cliente .border-gray-300,
+.role-empleado .border-gray-300 { border-color: var(--border-color) !important; }
+
+.role-admin .text-gray-600,
+.role-cliente .text-gray-600,
+.role-empleado .text-gray-600 { color: var(--text-secondary) !important; }
+
+.role-admin .text-gray-700,
+.role-cliente .text-gray-700,
+.role-empleado .text-gray-700 { color: var(--text-secondary) !important; }
+
+.role-admin .text-gray-800,
+.role-cliente .text-gray-800,
+.role-empleado .text-gray-800 { color: var(--text-primary) !important; }
+
+.role-admin .text-black,
+.role-cliente .text-black,
+.role-empleado .text-black { color: var(--text-primary) !important; }
+
+.role-admin .text-gray-900,
+.role-cliente .text-gray-900,
+.role-empleado .text-gray-900 { color: var(--text-primary) !important; }
+
+.role-admin .text-gray-500,
+.role-cliente .text-gray-500,
+.role-empleado .text-gray-500 { color: var(--text-secondary) !important; }
+
+.role-admin .text-slate-700,
+.role-cliente .text-slate-700,
+.role-empleado .text-slate-700 { color: var(--text-secondary) !important; }
+
+.role-admin .text-slate-800,
+.role-cliente .text-slate-800,
+.role-empleado .text-slate-800 { color: var(--text-primary) !important; }
+
+.role-admin .text-slate-900,
+.role-cliente .text-slate-900,
+.role-empleado .text-slate-900 { color: var(--text-primary) !important; }
+
+.role-admin h1,
+.role-admin h2,
+.role-admin h3,
+.role-admin h4,
+.role-cliente h1,
+.role-cliente h2,
+.role-cliente h3,
+.role-cliente h4,
+.role-empleado h1,
+.role-empleado h2,
+.role-empleado h3,
+.role-empleado h4 { color: var(--text-primary); }
+
+/* Nav buttons: single accent color with readable text */
+.ui-nav-btn {
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(59, 130, 246, 0.8) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  opacity: 0.85;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  cursor: pointer;
+  font-weight: 500;
+}
+.ui-nav-btn:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+.ui-nav-btn.active {
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+/* Subtle badges for status on dark theme */
+.role-admin .bg-red-50,
+.role-cliente .bg-red-50,
+.role-empleado .bg-red-50 { background: rgba(239, 68, 68, 0.12) !important; }
+.role-admin .bg-red-100,
+.role-cliente .bg-red-100,
+.role-empleado .bg-red-100 { background: rgba(239, 68, 68, 0.18) !important; }
+.role-admin .text-red-800,
+.role-cliente .text-red-800,
+.role-empleado .text-red-800 { color: #fca5a5 !important; }
+
+.role-admin .bg-green-50,
+.role-cliente .bg-green-50,
+.role-empleado .bg-green-50 { background: rgba(34, 197, 94, 0.12) !important; }
+.role-admin .bg-green-100,
+.role-cliente .bg-green-100,
+.role-empleado .bg-green-100 { background: rgba(34, 197, 94, 0.18) !important; }
+.role-admin .text-green-800,
+.role-cliente .text-green-800,
+.role-empleado .text-green-800 { color: #86efac !important; }
+
+.role-admin .bg-yellow-50,
+.role-cliente .bg-yellow-50,
+.role-empleado .bg-yellow-50 { background: rgba(234, 179, 8, 0.12) !important; }
+.role-admin .bg-yellow-100,
+.role-cliente .bg-yellow-100,
+.role-empleado .bg-yellow-100 { background: rgba(234, 179, 8, 0.18) !important; }
+.role-admin .text-yellow-700,
+.role-cliente .text-yellow-700,
+.role-empleado .text-yellow-700 { color: #fde68a !important; }
+
+/* Badge de notificaciones con animación */
+@keyframes notification-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.notification-badge {
+  animation: notification-pulse 2s ease-in-out infinite;
 }

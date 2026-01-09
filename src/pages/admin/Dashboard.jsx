@@ -37,72 +37,73 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [toast, setToast] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const lastSeenRef = useRef(null);
   const initializedRef = useRef(false);
 
-  useEffect(() => {
-    let timeoutId;
-    let intervalId;
+  const fetchNotifications = async () => {
+    try {
+      const response = await notificationService.getNotifications();
+      const list = Array.isArray(response) ? response : response?.data || [];
+      
+      // Contar notificaciones no leídas
+      const unread = list.filter(notif => notif.leida === false).length;
+      setUnreadCount(unread);
+      
+      if (list.length === 0) return;
 
-    const showToast = (notif) => {
-      setToast({
-        title: notif.titulo || 'Nueva notificación',
-        message: notif.mensaje || 'Revisa tus notificaciones',
-        tipo: notif.tipo || 'general'
-      });
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setToast(null), 5000);
-    };
+      const newest = list[0];
 
-    const fetchNotifications = async () => {
-      try {
-        const response = await notificationService.getNotifications();
-        const list = Array.isArray(response) ? response : response?.data || [];
-        if (list.length === 0) return;
-
-        const newest = list[0];
-
-        // Primera carga: solo registrar el último visto para no disparar toast inicial
-        if (!initializedRef.current) {
-          lastSeenRef.current = newest.id;
-          initializedRef.current = true;
-          return;
-        }
-
-        // Si hay nueva notificación no leída, mostrar toast
-        const isNew = newest.id && newest.id !== lastSeenRef.current;
-        const isUnread = newest.leida === false;
-        if (isNew && isUnread) {
-          showToast(newest);
-        }
-
-        if (newest.id) {
-          lastSeenRef.current = newest.id;
-        }
-      } catch (error) {
-        // Silenciar errores para no romper el dashboard
-        console.error('Error al obtener notificaciones:', error);
+      // Primera carga: solo registrar el último visto para no disparar toast inicial
+      if (!initializedRef.current) {
+        lastSeenRef.current = newest.id;
+        initializedRef.current = true;
+        return;
       }
-    };
 
+      // Si hay nueva notificación no leída, mostrar toast
+      const isNew = newest.id && newest.id !== lastSeenRef.current;
+      const isUnread = newest.leida === false;
+      if (isNew && isUnread) {
+        showToast(newest);
+      }
+
+      if (newest.id) {
+        lastSeenRef.current = newest.id;
+      }
+    } catch (error) {
+      // Silenciar errores para no romper el dashboard
+      console.error('Error al obtener notificaciones:', error);
+    }
+  };
+
+  const showToast = (notif) => {
+    setToast({
+      title: notif.titulo || 'Nueva notificación',
+      message: notif.mensaje || 'Revisa tus notificaciones',
+      tipo: notif.tipo || 'general'
+    });
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  useEffect(() => {
     fetchNotifications();
-    intervalId = setInterval(fetchNotifications, 20000);
+    const intervalId = setInterval(fetchNotifications, 20000);
 
     return () => {
       clearInterval(intervalId);
-      clearTimeout(timeoutId);
     };
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-slate-900 role-admin">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200">
+      <aside className="w-64 bg-slate-800 border-r border-slate-700 shadow-xl">
         <div className="flex flex-col h-full">
           {/* Company Logo & Info */}
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Sellos-G</h1>
-            <p className="text-sm text-gray-500 mt-1">Administrador</p>
+          <div className="p-6 border-b border-slate-700">
+            <h1 className="text-2xl font-bold text-blue-400">Sellos-G</h1>
+            <p className="text-sm text-slate-400 mt-1">Administrador</p>
           </div>
 
           {/* Navigation */}
@@ -110,10 +111,8 @@ const AdminDashboard = () => {
             <div className="space-y-1">
               <button
                 onClick={() => navigate('/admin/dashboard')}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  location.pathname === '/admin/dashboard'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                className={`w-full flex items-center ui-nav-btn mb-1 ${
+                  location.pathname === '/admin/dashboard' ? 'active' : ''
                 }`}
               >
                 <LayoutDashboard className="w-5 h-5 mr-3" />
@@ -121,116 +120,103 @@ const AdminDashboard = () => {
               </button>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Perfil y Empresa</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Perfil y Empresa</p>
                 <button
                   onClick={() => navigate('/admin/dashboard/empresa')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/empresa'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/empresa' ? 'active' : ''
                   }`}
                 >
-                  <Building2 className="w-5 h-5 mr-3" />
+                  <Building2 className="w-5 h-5 mr-3 " />
                   Datos de Empresa
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard/configuracion')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/configuracion'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/configuracion' ? 'active' : ''
                   }`}
                 >
-                  <Settings className="w-5 h-5 mr-3" />
+                  <Settings className="w-5 h-5 mr-3 " />
                   Configuración
                 </button>
               </div>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Gestión</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Gestión</p>
                 <button
                   onClick={() => navigate('/admin/dashboard/productos')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/productos'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/productos' ? 'active' : ''
                   }`}
                 >
-                  <Package className="w-5 h-5 mr-3" />
+                  <Package className="w-5 h-5 mr-3 " />
                   Productos
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard/pedidos')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/pedidos'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/pedidos' ? 'active' : ''
                   }`}
                 >
-                  <ClipboardList className="w-5 h-5 mr-3" />
+                  <ClipboardList className="w-5 h-5 mr-3 " />
                   Pedidos
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard/inventario')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/inventario'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/inventario' ? 'active' : ''
                   }`}
                 >
-                  <Boxes className="w-5 h-5 mr-3" />
+                  <Boxes className="w-5 h-5 mr-3 " />
                   Inventario
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard/usuarios')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/usuarios'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/usuarios' ? 'active' : ''
                   }`}
                 >
-                  <UserCog className="w-5 h-5 mr-3" />
+                  <UserCog className="w-5 h-5 mr-3 " />
                   Usuarios
                 </button>
               </div>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Reportes</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Reportes</p>
                 <button
                   onClick={() => navigate('/admin/dashboard/estadisticas')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/estadisticas'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/estadisticas' ? 'active' : ''
                   }`}
                 >
-                  <BarChart3 className="w-5 h-5 mr-3" />
+                  <BarChart3 className="w-5 h-5 mr-3 " />
                   Estadísticas
                 </button>
               </div>
 
               <div className="mt-4">
-                <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase">Comunicación</p>
+                <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Comunicación</p>
                 <button
                   onClick={() => navigate('/admin/dashboard/notificaciones')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/notificaciones'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/notificaciones' ? 'active' : ''
                   }`}
                 >
-                  <Bell className="w-5 h-5 mr-3" />
+                  <Bell className="w-5 h-5 mr-3 " />
                   Notificaciones
+                  {unreadCount > 0 && (
+                    <span className="ml-auto bg-red-500/20 text-red-400 text-xs font-semibold px-2 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => navigate('/admin/dashboard/chat')}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    location.pathname === '/admin/dashboard/chat'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center ui-nav-btn mb-1 ${
+                    location.pathname === '/admin/dashboard/chat' ? 'active' : ''
                   }`}
                 >
-                  <MessagesSquare className="w-5 h-5 mr-3" />
+                  <MessagesSquare className="w-5 h-5 mr-3 " />
                   Chat
                 </button>
               </div>
@@ -238,15 +224,15 @@ const AdminDashboard = () => {
           </nav>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-slate-700">
             <div className="flex items-center">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{user?.nombre}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-sm font-semibold text-slate-100 truncate">{user?.nombre}</p>
+                <p className="text-xs text-slate-400 truncate">{user?.email}</p>
               </div>
               <button
                 onClick={logout}
-                className="ml-2 flex items-center justify-center p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                className="ml-2 flex items-center justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg hover:text-red-300 transition-colors"
                 title="Cerrar sesión"
               >
                 <LogOut className="w-5 h-5" />
@@ -257,8 +243,8 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-900">
+        <main className="flex-1 overflow-y-auto bg-slate-900 p-6">
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<DashboardHome />} />
@@ -269,7 +255,7 @@ const AdminDashboard = () => {
               <Route path="/inventario" element={<Inventory />} />
               <Route path="/usuarios" element={<UsersManagement />} />
               <Route path="/estadisticas" element={<Statistics />} />
-              <Route path="/notificaciones" element={<Notifications />} />
+              <Route path="/notificaciones" element={<Notifications onNotificationsChange={fetchNotifications} />} />
               <Route path="/chat" element={<Chat />} />
             </Routes>
           </div>
@@ -277,24 +263,24 @@ const AdminDashboard = () => {
 
         {toast && (
           <div className="fixed bottom-6 right-6 z-50">
-            <div className="max-w-sm w-full bg-white shadow-xl rounded-lg border border-blue-200 overflow-hidden">
+            <div className="max-w-sm w-full ui-toast shadow-2xl overflow-hidden">
               <div className="p-4 flex items-start gap-3">
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <Bell className="w-5 h-5 text-blue-600" />
+                <div className="ui-icon-badge">
+                  <Bell className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">{toast.title}</p>
-                  <p className="text-sm text-gray-600 mt-1">{toast.message}</p>
+                  <p className="text-sm font-semibold ui-title">{toast.title}</p>
+                  <p className="text-sm ui-text mt-1">{toast.message}</p>
                   <button
                     onClick={() => navigate('/admin/dashboard/notificaciones')}
-                    className="mt-3 text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="mt-3 text-sm font-medium ui-link-accent"
                   >
-                    Ver notificaciones
+                    Ver notificaciones →
                   </button>
                 </div>
                 <button
                   onClick={() => setToast(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-slate-400 hover:text-slate-200 transition-colors text-xl leading-none"
                   aria-label="Cerrar"
                 >
                   ×

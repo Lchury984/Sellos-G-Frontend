@@ -82,20 +82,20 @@ const OrderTracking = () => {
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       ) : pedidos.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <ClipboardList className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No tienes pedidos</h3>
-          <p className="text-gray-500">Los pedidos que hagas aparecerán aquí para que puedas hacer seguimiento</p>
+        <div className="ui-card p-12 text-center">
+          <ClipboardList className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+          <h3 className="text-lg font-semibold ui-title mb-2">No tienes pedidos</h3>
+          <p className="ui-text">Los pedidos que hagas aparecerán aquí para que puedas hacer seguimiento</p>
         </div>
       ) : (
         <div className="space-y-4">
           {pedidos.map((pedido) => (
-            <div key={pedido._id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition">
+            <div key={pedido._id} className="ui-card overflow-hidden">
               <div className="p-6">
                 {/* Header del pedido */}
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold ui-title">
                       Pedido #{pedido._id.slice(-8).toUpperCase()}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
@@ -112,31 +112,31 @@ const OrderTracking = () => {
 
                 {/* Empleado asignado - LECTURA SOLO */}
                 {pedido.empleadoAsignado ? (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="mb-4 p-4 ui-card rounded-lg border-l-4 border-blue-500">
                     <div className="flex items-center gap-2 mb-2">
-                      <User className="w-4 h-4 text-blue-600" />
-                      <h4 className="text-sm font-medium text-gray-700">Asignado a</h4>
+                      <User className="w-4 h-4 text-blue-500" />
+                      <h4 className="text-sm font-medium ui-text">Asignado a</h4>
                     </div>
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm ui-title">
                       <p className="font-semibold">{pedido.empleadoAsignado?.nombre} {pedido.empleadoAsignado?.apellido}</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="mb-4 p-4 ui-card rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <h4 className="text-sm font-medium text-gray-700">Asignado a</h4>
+                      <User className="w-4 h-4 text-slate-400" />
+                      <h4 className="text-sm font-medium ui-text">Asignado a</h4>
                     </div>
-                    <p className="text-sm text-gray-500 italic">Sin asignar</p>
+                    <p className="text-sm text-slate-400 italic">Sin asignar</p>
                   </div>
                 )}
 
                 {/* Productos */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Productos</h4>
+                  <h4 className="text-sm font-medium ui-title mb-2">Productos</h4>
                   <div className="space-y-2">
                     {pedido.productos?.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 ui-card rounded-lg">
                         <div className="flex items-center gap-3">
                           {item.producto?.imagenUrl && (
                             <img
@@ -146,13 +146,13 @@ const OrderTracking = () => {
                             />
                           )}
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{item.producto?.nombre}</p>
-                            <p className="text-xs text-gray-500">Cantidad: {item.cantidad}</p>
+                            <p className="text-sm font-medium ui-title">{item.producto?.nombre}</p>
+                            <p className="text-xs ui-text">Cantidad: {item.cantidad}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold text-gray-900">${item.subtotal.toFixed(2)}</p>
-                          <p className="text-xs text-gray-500">${item.precioUnitario.toFixed(2)} c/u</p>
+                          <p className="text-sm font-semibold ui-title">${item.subtotal.toFixed(2)}</p>
+                          <p className="text-xs ui-text">${item.precioUnitario.toFixed(2)} c/u</p>
                         </div>
                       </div>
                     ))}
@@ -161,42 +161,42 @@ const OrderTracking = () => {
 
                 {/* Nota */}
                 {pedido.notaEmpleado && (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="mb-4 p-4 ui-card rounded-lg border-l-4 border-green-500">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h4 className="text-sm font-medium text-blue-900 mb-1">Nota sobre tu pedido</h4>
-                        <p className="text-sm text-blue-700">{pedido.notaEmpleado}</p>
+                        <h4 className="text-sm font-medium ui-title mb-1">Nota sobre tu pedido</h4>
+                        <p className="text-sm ui-text">{pedido.notaEmpleado}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Total */}
-                <div className="p-4 bg-gray-900 rounded-lg text-white flex justify-between items-center">
+                <div className="p-4 ui-card flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5" />
-                    <span className="font-semibold">Total del Pedido</span>
+                    <span className="font-semibold ui-text">Total del Pedido</span>
                   </div>
-                  <span className="text-2xl font-bold">${pedido.total.toFixed(2)}</span>
+                  <span className="text-2xl font-bold ui-title">${pedido.total.toFixed(2)}</span>
                 </div>
 
                 {/* Timeline de estado */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="mt-4 pt-4 border-t border-gray-700">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex-1 text-center">
-                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'pendiente' ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-gray-600">Pendiente</span>
+                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'pendiente' ? 'bg-yellow-500' : 'bg-slate-500'}`}></div>
+                      <span className="ui-text">Pendiente</span>
                     </div>
-                    <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
+                    <div className="flex-1 h-0.5 bg-slate-600 mx-2"></div>
                     <div className="flex-1 text-center">
-                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'en proceso' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-gray-600">En Proceso</span>
+                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'en proceso' ? 'bg-blue-500' : 'bg-slate-500'}`}></div>
+                      <span className="ui-text">En Proceso</span>
                     </div>
-                    <div className="flex-1 h-0.5 bg-gray-300 mx-2"></div>
+                    <div className="flex-1 h-0.5 bg-slate-600 mx-2"></div>
                     <div className="flex-1 text-center">
-                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'completado' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className="text-gray-600">Completado</span>
+                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${pedido.estado === 'completado' ? 'bg-green-500' : 'bg-slate-500'}`}></div>
+                      <span className="ui-text">Completado</span>
                     </div>
                   </div>
                 </div>

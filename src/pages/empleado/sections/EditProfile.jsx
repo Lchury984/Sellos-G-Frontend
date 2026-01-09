@@ -78,10 +78,10 @@ const EditProfile = () => {
     <>
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Editar Perfil</h2>
-        <p className="mt-1 text-sm text-gray-600">Actualiza tu información personal</p>
+        <p className="mt-1 text-sm ui-text">Actualiza tu perfil de empleado</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="ui-card p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
@@ -155,7 +155,7 @@ const EditProfile = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 ui-btn-primary"
           >
             {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Guardando...</> : <><Save className="w-5 h-5" /> Guardar Cambios</>}
           </button>

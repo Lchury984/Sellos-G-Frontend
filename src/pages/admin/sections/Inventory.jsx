@@ -132,7 +132,7 @@ const Inventory = () => {
               resetForm();
               setShowModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 ui-btn-primary"
           >
             <Plus className="w-5 h-5" />
             Agregar Material
@@ -153,7 +153,7 @@ const Inventory = () => {
       )}
 
       {/* Tabla de materiales */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="ui-card rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Cargando materiales...</div>
         ) : materials.length === 0 ? (
@@ -164,7 +164,7 @@ const Inventory = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-800/40">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Material
@@ -186,11 +186,11 @@ const Inventory = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-700">
                 {materials.map((material) => (
                   <tr
                     key={material.id}
-                    className={isLowStock(material) ? 'bg-red-50' : 'hover:bg-gray-50'}
+                    className={isLowStock(material) ? 'bg-red-50' : 'hover:bg-slate-800/40'}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -210,7 +210,7 @@ const Inventory = () => {
                         type="number"
                         value={material.cantidad}
                         onChange={(e) => handleUpdateStock(material.id, e.target.value)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                        className="w-20 px-2 py-1 border rounded text-sm"
                         min="0"
                       />
                     </td>
@@ -259,13 +259,13 @@ const Inventory = () => {
       {/* Modal para agregar/editar material */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+          <div className="ui-card rounded-xl shadow-xl p-6 w-full max-w-md">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               {editingMaterial ? 'Editar Material' : 'Agregar Material'}
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium ui-text mb-1">
                   Nombre del Material *
                 </label>
                 <input
@@ -273,14 +273,14 @@ const Inventory = () => {
                   required
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-lg"
                   placeholder="Ej: Papel A4"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium ui-text mb-1">
                     Cantidad *
                   </label>
                   <input
@@ -289,7 +289,7 @@ const Inventory = () => {
                     min="0"
                     value={formData.cantidad}
                     onChange={(e) => setFormData({ ...formData, cantidad: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border rounded-lg"
                   />
                 </div>
                 <div>
@@ -311,7 +311,7 @@ const Inventory = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium ui-text mb-1">
                   Stock Mínimo
                 </label>
                 <input
@@ -319,18 +319,18 @@ const Inventory = () => {
                   min="0"
                   value={formData.stockMinimo}
                   onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-lg"
                   placeholder="10"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <label className="block text-sm font-medium ui-text mb-1">Descripción</label>
                 <textarea
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-lg"
                   placeholder="Descripción del material..."
                 />
               </div>
@@ -338,14 +338,14 @@ const Inventory = () => {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 ui-btn-primary"
                 >
                   {editingMaterial ? 'Actualizar' : 'Agregar'}
                 </button>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 ui-btn"
                 >
                   Cancelar
                 </button>

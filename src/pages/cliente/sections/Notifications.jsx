@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import notificationService from '../../../services/notificationService';
 
-const Notifications = () => {
+const Notifications = ({ onNotificationsChange }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todas'); // 'todas', 'no-leidas'
@@ -42,6 +42,10 @@ const Notifications = () => {
     try {
       await notificationService.markAsRead(id);
       loadNotifications();
+      // Actualizar contador en el Dashboard
+      if (onNotificationsChange) {
+        onNotificationsChange();
+      }
     } catch (err) {
       console.error('Error al marcar como leída:', err);
     }
@@ -51,6 +55,10 @@ const Notifications = () => {
     try {
       await notificationService.markAllAsRead();
       loadNotifications();
+      // Actualizar contador en el Dashboard
+      if (onNotificationsChange) {
+        onNotificationsChange();
+      }
     } catch (err) {
       console.error('Error al marcar todas como leídas:', err);
     }

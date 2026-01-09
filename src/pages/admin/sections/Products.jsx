@@ -272,14 +272,14 @@ const Products = () => {
             Gestiona tus productos, categorías y promociones
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => {
               setShowCategoryModal(true);
               setEditingCategory(null);
               setFormDataCategory({ nombre: '', descripcion: '' });
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-2 ui-btn-primary"
           >
             <Tag className="w-5 h-5" />
             Nueva Categoría
@@ -440,7 +440,7 @@ const Products = () => {
                     <div className="flex justify-center mb-8">
                       <button
                         onClick={() => toggleCategoryExpanded(grupo.categoria._id)}
-                        className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                        className="ui-btn-secondary"
                       >
                         {expandedCategories[grupo.categoria._id] ? 'Ver menos' : 'Ver más'}
                       </button>
@@ -650,13 +650,13 @@ const Products = () => {
                     setShowProductModal(false);
                     resetProductForm();
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  className="flex-1 ui-btn-ghost"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 ui-btn-primary"
                 >
                   <Save className="w-5 h-5" />
                   Guardar Producto
@@ -723,13 +723,13 @@ const Products = () => {
                     setEditingCategory(null);
                     setFormDataCategory({ nombre: '', descripcion: '' });
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  className="flex-1 ui-btn-ghost"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 ui-btn-primary"
                 >
                   <Save className="w-5 h-5" />
                   Guardar Categoría

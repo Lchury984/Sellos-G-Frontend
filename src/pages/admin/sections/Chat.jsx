@@ -67,7 +67,10 @@ const Chat = () => {
   const loadConversations = async () => {
     try {
       const response = await chatService.getConversations();
-      setConversations(Array.isArray(response) ? response : response.data || []);
+      const list = Array.isArray(response) ? response : response.data || [];
+      // Mostrar solo conversaciones que tienen al menos un mensaje
+      const withMessages = list.filter((c) => Boolean(c?.ultimoMensaje));
+      setConversations(withMessages);
       setLoading(false);
     } catch (err) {
       console.error('Error al cargar conversaciones:', err);
@@ -149,11 +152,11 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="flex h-[calc(100vh-8rem)] ui-card overflow-hidden">
       {/* Lista de conversaciones */}
-      <div className="w-80 border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Conversaciones</h3>
+      <div className="w-80 border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="text-lg font-semibold ui-title">Conversaciones</h3>
         </div>
         <div className="flex-1 overflow-y-auto">
           {loading ? (
@@ -167,7 +170,7 @@ const Chat = () => {
               <p>No hay conversaciones</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-700">
               {conversations.map((conversation) => {
                 const otherUser = getConversationUser(conversation);
                 const isSelected = selectedConversation?.id === conversation.id;
@@ -177,21 +180,21 @@ const Chat = () => {
                   <button
                     key={conversation.id}
                     onClick={() => setSelectedConversation(conversation)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
-                      isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                    className={`w-full p-5 text-left hover:bg-slate-800/40 transition-colors ${
+                      isSelected ? 'ring-2 ring-blue-600/60' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 ui-icon-badge rounded-full">
+                          <User className="w-5 h-5" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium ui-title truncate">
                           {otherUser?.nombre || 'Usuario'}
                         </p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs ui-text truncate">
                           {conversation.ultimoMensaje || 'Sin mensajes'}
                         </p>
                       </div>
@@ -208,44 +211,7 @@ const Chat = () => {
           )}
         </div>
 
-        {/* Lista de usuarios para iniciar conversación */}
-        <div className="border-t border-gray-200 p-4 max-h-64 overflow-y-auto space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase">Iniciar chat</p>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Empleados</p>
-            <div className="space-y-1">
-              {users
-                .filter((u) => u.id !== user?.id && u.rol === 'empleado')
-                .map((userItem) => (
-                  <button
-                    key={userItem.id}
-                    onClick={() => handleStartConversation(userItem.id)}
-                    className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="truncate">{userItem.nombre}</span>
-                  </button>
-                ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Clientes</p>
-            <div className="space-y-1">
-              {users
-                .filter((u) => u.id !== user?.id && u.rol === 'cliente')
-                .map((userItem) => (
-                  <button
-                    key={userItem.id}
-                    onClick={() => handleStartConversation(userItem.id)}
-                    className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="truncate">{userItem.nombre}</span>
-                  </button>
-                ))}
-            </div>
-          </div>
-        </div>
+        {/* (Se movió la lista de usuarios al panel derecho) */}
       </div>
 
       {/* Área de mensajes */}
@@ -253,22 +219,22 @@ const Chat = () => {
         {selectedConversation ? (
           <>
             {/* Header de conversación */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 ui-icon-badge rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium ui-title">
                     {getConversationUser(selectedConversation)?.nombre || 'Usuario'}
                   </p>
-                  <p className="text-xs text-gray-500">En línea</p>
+                  <p className="text-xs ui-text">En línea</p>
                 </div>
               </div>
             </div>
 
             {/* Mensajes */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {messages.map((message) => {
                 const isOwn = message.remitenteId === user?.id;
                 return (
@@ -280,7 +246,7 @@ const Chat = () => {
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         isOwn
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
+                          : 'bg-slate-800/60 text-slate-100'
                       }`}
                     >
                       {message.mediaUrl ? (
@@ -294,8 +260,8 @@ const Chat = () => {
                       ) : null}
                       {message.mensaje && <p className="text-sm break-words">{message.mensaje}</p>}
                       <p
-                        className={`text-xs mt-1 ${
-                          isOwn ? 'text-blue-100' : 'text-gray-500'
+                        className={`text-xs mt-2 ${
+                          isOwn ? 'text-blue-100' : 'text-slate-400'
                         }`}
                       >
                         {new Date(message.fecha || message.createdAt).toLocaleTimeString('es-ES', {
@@ -311,32 +277,32 @@ const Chat = () => {
             </div>
 
             {/* Input de mensaje */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 space-y-2">
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700 space-y-3">
               <div className="flex gap-2 items-center">
                 <input
                   type="file"
                   accept="image/*,video/*"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="text-sm text-gray-600"
+                  className="text-sm ui-text"
                   disabled={sending}
                 />
                 {selectedFile && (
-                  <span className="text-xs text-gray-500 truncate">{selectedFile.name}</span>
+                  <span className="text-xs ui-text truncate">{selectedFile.name}</span>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Escribe un mensaje..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 border rounded-lg"
                   disabled={sending}
                 />
                 <button
                   type="submit"
                   disabled={(!newMessage.trim() && !selectedFile) || sending}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 ui-btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {sending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -350,12 +316,62 @@ const Chat = () => {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500">Selecciona una conversación para comenzar</p>
+              <MessageSquare className="w-16 h-16 mx-auto mb-4 text-slate-400" />
+              <p className="ui-text">Selecciona una conversación para comenzar</p>
             </div>
           </div>
         )}
       </div>
+
+      {/* Panel derecho: Iniciar chat separado por rol */}
+      <aside className="w-72 border-l border-gray-700 p-4 overflow-y-auto">
+        <p className="text-xs font-semibold ui-text uppercase mb-4">Iniciar chat</p>
+        <div className="space-y-5">
+          {/* Empleados Section */}
+          <div className="pb-4 border-b border-gray-700">
+            <p className="text-[11px] font-semibold ui-text uppercase mb-3 pl-1 opacity-80">Empleados</p>
+            <div className="space-y-2">
+              {users
+                .filter((u) => u.id !== user?.id && u.rol === 'empleado')
+                .map((userItem) => (
+                  <button
+                    key={userItem.id}
+                    onClick={() => handleStartConversation(userItem.id)}
+                    className="w-full flex items-center gap-3 p-3 ui-btn hover:bg-gray-700 transition-colors"
+                  >
+                    <User className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate text-sm">{userItem.nombre}</span>
+                  </button>
+                ))}
+              {users.filter((u) => u.id !== user?.id && u.rol === 'empleado').length === 0 && (
+                <p className="text-xs ui-text opacity-60">No hay empleados disponibles</p>
+              )}
+            </div>
+          </div>
+
+          {/* Clientes Section */}
+          <div>
+            <p className="text-[11px] font-semibold ui-text uppercase mb-3 pl-1 opacity-80">Clientes</p>
+            <div className="space-y-2">
+              {users
+                .filter((u) => u.id !== user?.id && u.rol === 'cliente')
+                .map((userItem) => (
+                  <button
+                    key={userItem.id}
+                    onClick={() => handleStartConversation(userItem.id)}
+                    className="w-full flex items-center gap-3 p-3 ui-btn hover:bg-gray-700 transition-colors"
+                  >
+                    <User className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate text-sm">{userItem.nombre}</span>
+                  </button>
+                ))}
+              {users.filter((u) => u.id !== user?.id && u.rol === 'cliente').length === 0 && (
+                <p className="text-xs ui-text opacity-60">No hay clientes disponibles</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   );
 };
