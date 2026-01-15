@@ -19,6 +19,13 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+  const ASSET_BASE = API_BASE.replace(/\/api$/, '');
+  const resolveMediaUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${ASSET_BASE}${url.startsWith('/') ? url : `/${url}`}`;
+  };
+
   useEffect(() => {
     loadConversations();
     loadUsers();
@@ -306,11 +313,12 @@ const Chat = () => {
                       >
                         {message.mediaUrl ? (
                           <div className="mb-2">
-                            {message.mediaUrl.match(/\.(mp4|mov|avi|mkv)$/i) ? (
-                              <video src={message.mediaUrl} controls className="rounded-md max-h-48" />
-                            ) : (
-                              <img src={message.mediaUrl} alt="adjunto" className="rounded-md max-h-48" />
-                            )}
+                            <img
+                              src={resolveMediaUrl(message.mediaUrl)}
+                              alt="adjunto"
+                              className="rounded-md max-h-48"
+                              loading="lazy"
+                            />
                           </div>
                         ) : null}
                         {message.mensaje && <p className="text-sm break-words">{message.mensaje}</p>}
@@ -336,7 +344,7 @@ const Chat = () => {
                 <div className="flex gap-2 items-center">
                   <input
                     type="file"
-                    accept="image/*,video/*"
+                    accept="image/*"
                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     className="text-sm ui-text"
                     disabled={sending}
