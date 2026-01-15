@@ -1,4 +1,5 @@
 // src/pages/public/Landing.jsx
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -11,10 +12,35 @@ import {
   ArrowRight,
   Award,
   Truck,
-  Clock
+  Clock,
+  Mail,
+  Phone,
+  MapPin
 } from 'lucide-react';
+import companyService from '../../services/companyService';
 
 const Landing = () => {
+  const [companyData, setCompanyData] = useState({
+    nombre: 'Sellos-G',
+    descripcion: 'Especialistas en la creación de sellos únicos y materiales publicitarios de alta calidad. Convierte tus ideas en realidad con diseños profesionales que destacan tu marca.',
+    email: 'info@sellos-g.com',
+    telefono: '+503 0000-0000',
+    direccion: 'San Salvador, El Salvador',
+    logoUrl: '',
+    tagline: 'Sellos y Publicidad desde 2015'
+  });
+
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      try {
+        const data = await companyService.getSettings();
+        setCompanyData(data);
+      } catch (error) {
+        console.error('Error cargando configuración:', error);
+      }
+    };
+    fetchCompanyData();
+  }, []);
   const services = [
     {
       icon: Stamp,
@@ -66,11 +92,15 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Stamp className="w-5 h-5 text-white" />
-              </div>
+              {companyData.logoUrl ? (
+                <img src={companyData.logoUrl} alt="Logo" className="h-8 w-auto" />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Stamp className="w-5 h-5 text-white" />
+                </div>
+              )}
               <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Sellos-G
+                {companyData.nombre}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -103,7 +133,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-purple-500/30 rounded-full mb-8">
             <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-300">Sellos y Publicidad desde 2015</span>
+            <span className="text-sm text-purple-300">{companyData.tagline}</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -117,9 +147,7 @@ const Landing = () => {
           </h1>
 
           <p className="text-xl text-slate-400 mb-10 max-w-3xl mx-auto">
-            Especialistas en la creación de sellos únicos y materiales publicitarios 
-            de alta calidad. Convierte tus ideas en realidad con diseños profesionales 
-            que destacan tu marca.
+            {companyData.descripcion}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -275,27 +303,74 @@ const Landing = () => {
       {/* Footer */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-900 border-t border-slate-800">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Stamp className="w-5 h-5 text-white" />
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            {/* Logo y Nombre */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                {companyData.logoUrl ? (
+                  <img src={companyData.logoUrl} alt="Logo" className="h-8 w-auto" />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Stamp className="w-5 h-5 text-white" />
+                  </div>
+                )}
+                <span className="text-xl font-bold text-white">{companyData.nombre}</span>
               </div>
-              <span className="text-xl font-bold text-white">Sellos-G</span>
+              <p className="text-slate-400 text-sm">
+                {companyData.tagline}
+              </p>
             </div>
-            <p className="text-slate-400 text-center">
-              © 2026 Sellos-G. Especialistas en Sellos y Publicidad.
+
+            {/* Contacto */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Contacto</h3>
+              <div className="space-y-3 text-slate-400 text-sm">
+                {companyData.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    <a href={`mailto:${companyData.email}`} className="hover:text-white transition-colors">
+                      {companyData.email}
+                    </a>
+                  </div>
+                )}
+                {companyData.telefono && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    <a href={`tel:${companyData.telefono}`} className="hover:text-white transition-colors">
+                      {companyData.telefono}
+                    </a>
+                  </div>
+                )}
+                {companyData.direccion && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{companyData.direccion}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Links */}
+            <div>
+              <h3 className="text-white font-semibold mb-4">Enlaces Rápidos</h3>
+              <div className="flex flex-col gap-2 text-slate-400 text-sm">
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Cotizar
+                </Link>
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Catálogo
+                </Link>
+                <a href={`mailto:${companyData.email}`} className="hover:text-white transition-colors">
+                  Contacto
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-slate-800 text-center">
+            <p className="text-slate-400 text-sm">
+              © {new Date().getFullYear()} {companyData.nombre}. Todos los derechos reservados.
             </p>
-            <div className="flex gap-6">
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                Cotizar
-              </a>
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                Catálogo
-              </a>
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                Contacto
-              </a>
-            </div>
           </div>
         </div>
       </footer>
