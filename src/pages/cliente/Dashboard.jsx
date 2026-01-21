@@ -17,7 +17,7 @@ import {
 // Importar secciones del cliente
 import DashboardHome from './sections/DashboardHome';
 import Catalog from './sections/Catalog';
-import CreateOrder from './sections/CreateOrder';
+import RealizarPedido from './RealizarPedido';
 import OrderTracking from './sections/OrderTracking';
 import EditProfile from './sections/EditProfile';
 import Notifications from './sections/Notifications';
@@ -180,7 +180,7 @@ const ClienteDashboard = () => {
             <Routes>
               <Route path="/" element={<DashboardHome />} />
               <Route path="/catalogo" element={<Catalog />} />
-              <Route path="/realizar-pedido" element={<CreateOrder />} />
+              <Route path="/realizar-pedido" element={<RealizarPedido />} />
               <Route path="/seguimiento" element={<OrderTracking />} />
               <Route path="/editar-perfil" element={<EditProfile />} />
               <Route path="/notificaciones" element={<Notifications onNotificationsChange={fetchUnreadCount} />} />
