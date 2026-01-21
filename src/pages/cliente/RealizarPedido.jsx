@@ -1,6 +1,5 @@
 // src/pages/cliente/RealizarPedido.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   FileUp, 
   Send, 
@@ -12,7 +11,6 @@ import {
 import pedidoService from '../../services/pedidoService';
 
 const RealizarPedido = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     tipoTrabajo: '',
     prioridad: 'normal',
@@ -114,19 +112,23 @@ const RealizarPedido = () => {
 
       setMessage({ 
         type: 'success', 
-        text: 'Pedido enviado exitosamente. Redirigiendo al chat...' 
+        text: '✅ ¡Pedido enviado exitosamente! El administrador se pondrá en contacto contigo pronto.' 
       });
 
-      // Redirigir al chat después de 1.5 segundos
-      setTimeout(() => {
-        navigate('/cliente/chat');
-      }, 1500);
-
+      // Limpiar formulario
+      setFormData({
+        tipoTrabajo: '',
+        prioridad: 'normal',
+        descripcion: ''
+      });
+      setArchivo(null);
+      setArchivoPreview(null);
     } catch (error) {
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.msg || 'Error al enviar el pedido' 
       });
+    } finally {
       setLoading(false);
     }
   };
