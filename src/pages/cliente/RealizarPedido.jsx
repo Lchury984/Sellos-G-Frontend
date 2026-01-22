@@ -81,6 +81,7 @@ const RealizarPedido = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -108,7 +109,8 @@ const RealizarPedido = () => {
         formDataToSend.append('archivo', archivo);
       }
 
-      await pedidoService.crearPedidoPersonalizado(formDataToSend);
+      const response = await pedidoService.crearPedidoPersonalizado(formDataToSend);
+      console.log('Pedido creado:', response);
 
       setMessage({ 
         type: 'success', 
@@ -123,12 +125,13 @@ const RealizarPedido = () => {
       });
       setArchivo(null);
       setArchivoPreview(null);
+      setLoading(false);
     } catch (error) {
+      console.error('Error:', error);
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.msg || 'Error al enviar el pedido' 
       });
-    } finally {
       setLoading(false);
     }
   };
