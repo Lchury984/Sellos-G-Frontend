@@ -1,5 +1,6 @@
 // src/App.jsx
 import { BrowserRouter } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import AppRoutes from './routes/AppRoutes';
 import './App.css';
@@ -11,6 +12,7 @@ function App() {
         <div className="h-screen w-full">
           <AppRoutes />
         </div>
+        <Analytics />
       </AuthProvider>
     </BrowserRouter>
   );
