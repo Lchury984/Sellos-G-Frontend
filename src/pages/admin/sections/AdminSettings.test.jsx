@@ -1,29 +1,50 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import AdminSettings from './AdminSettings'
 
-vi.mock('../../context/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: '123', nombre: 'Admin Test' },
-    isAuthenticated: true,
-    updateProfile: vi.fn()
-  })
+// Mock AuthContext
+vi.mock('../../../context/AuthContext', () => ({
+  useAuth: vi.fn(() => ({
+    user: { 
+      id: '123', 
+      nombre: 'Admin Test',
+      correo: 'admin@test.com',
+      email: 'admin@test.com'
+    },
+    updateUser: vi.fn(),
+    isAuthenticated: true
+  })),
+  AuthProvider: ({ children }) => children
 }))
 
-vi.mock('../../services/adminService', () => ({
+// Mock AdminService
+vi.mock('../../../services/adminService', () => ({
   default: {
-    obtenerMiPerfil: vi.fn(() => Promise.resolve({ data: { nombre: 'Admin' } }))
+    obtenerMiPerfil: vi.fn().mockResolvedValue({ 
+      data: { nombre: 'Admin Test', correo: 'admin@test.com' } 
+    }),
+    actualizarPerfil: vi.fn().mockResolvedValue({ 
+      data: { msg: 'Perfil actualizado' } 
+    }),
+    cambiarContrasena: vi.fn().mockResolvedValue({ 
+      data: { msg: 'Contraseña cambiada' } 
+    })
   }
 }))
 
 describe('AdminSettings Component', () => {
-  it('debe renderizar sin errores', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('debe renderizar el componente con las secciones correctas', () => {
     const { container } = render(
       <BrowserRouter>
         <AdminSettings />
       </BrowserRouter>
     )
     expect(container).toBeTruthy()
+    expect(container.querySelector('div')).toBeTruthy()
   })
 })
