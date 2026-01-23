@@ -9,9 +9,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="h-screen w-full">
+        <main className="h-screen w-full">
           <AppRoutes />
-        </div>
+        </main>
         <Analytics />
       </AuthProvider>
     </BrowserRouter>

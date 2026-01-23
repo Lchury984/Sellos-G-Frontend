@@ -8,7 +8,7 @@ const companyService = {
       const response = await api.get('/company/configuracion');
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo configuración:', error);
+      if (import.meta.env.DEV) console.warn('Error obteniendo configuración:', error);
       // Retornar valores por defecto si falla
       return {
         nombre: 'Sellos-G',
