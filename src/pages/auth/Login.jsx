@@ -245,6 +245,7 @@ const Login = () => {
                   value={formData.correo}
                   onChange={handleChange}
                   placeholder="Correo electrónico"
+                  autoComplete="email"
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-700/50 border border-slate-600 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all text-slate-200 placeholder-slate-500"
                   disabled={loading}
                 />
@@ -261,6 +262,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Contraseña"
+                  autoComplete="current-password"
                   className="w-full pl-12 pr-12 py-3.5 bg-slate-700/50 border border-slate-600 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all text-slate-200 placeholder-slate-500"
                   disabled={loading}
                 />
