@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LogOut,
   LayoutDashboard,
-  Clipboard,
   ShoppingCart,
   User,
   Bell,
@@ -101,13 +100,6 @@ const DashboardHome = () => {
   );
 };
 
-const Tasks = () => (
-  <div>
-    <h2 className="text-2xl font-bold mb-4">Tareas</h2>
-    <p className="text-gray-600">Lista de tareas asignadas al empleado.</p>
-  </div>
-);
-
 // EditProfile y Notifications ahora se importan como secciones reales
 
 const EmpleadoDashboard = () => {
@@ -162,15 +154,6 @@ const EmpleadoDashboard = () => {
 
               <div className="mt-4">
                 <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Operaciones</p>
-                <button
-                  onClick={() => navigate('/empleado/dashboard/tareas')}
-                  className={`w-full flex items-center ui-nav-btn mb-1 ${
-                    location.pathname === '/empleado/dashboard/tareas' ? 'active' : ''
-                  }`}
-                >
-                  <Clipboard className="w-5 h-5 mr-3 " />
-                  Tareas
-                </button>
                 <button
                   onClick={() => navigate('/empleado/dashboard/pedidos')}
                   className={`w-full flex items-center ui-nav-btn mb-1 ${
@@ -247,7 +230,6 @@ const EmpleadoDashboard = () => {
           <div className="max-w-7xl mx-auto">
             <Routes>
               <Route path="/" element={<DashboardHome />} />
-              <Route path="/tareas" element={<Tasks />} />
               <Route path="/pedidos" element={<AssignedOrders />} />
               <Route path="/editar-perfil" element={<EditProfile />} />
               <Route path="/notificaciones" element={<Notifications onNotificationsChange={fetchUnreadCount} />} />
